@@ -1,38 +1,65 @@
 # ECHO
 
-University policy helpdesk with public-policy retrieval, graph-assisted routing, and student-to-staff handoff. The bundled policies are demonstration data, not verified official university guidance.
+A university policy helpdesk with grounded retrieval, optional voice, department routing, and human staff replies. Sample policies are demonstration fixtures, not verified FAST NUCES guidance.
 
-## Repository layout
+## Run the entire demo with Docker
 
-```text
-app/             FastAPI backend and existing RAG pipeline
-web/             Canonical student and staff pages
-scripts/         Offline policy and organizational-data ingestion
-data/            Sample policies and university structure
-database/        PostgreSQL schema
-docs/plans/      Four-sprint implementation plan and progress
-docs/reference/  Original project description in Markdown and DOCX
-reusable_files/  Superseded prototype and temporary marker
+You need Git and Docker with Compose. No managed cloud services or host Python installation are required.
+
+```sh
+git pull --ff-only origin main
+cp .env.example .env
 ```
 
-## Partner handoff
+On Windows PowerShell, use `Copy-Item .env.example .env`. If `.env` already exists, keep it and add any missing settings instead of overwriting it.
 
-Pull the repository and follow [partner setup and testing](docs/partner-setup.md). Each developer supplies their own ignored `.env` with their own GroqCloud key. The guide includes macOS/Linux and Windows commands and a student-to-staff demo through the browser.
+Edit your local `.env`:
 
-## Local setup
+- `GROQ_API_KEY`: your own GroqCloud key; leave blank to test staff handoffs without model usage.
+- `PG_READONLY_PASSWORD`: choose a private runtime database password; replace the placeholder.
+- `STAFF_PASSWORD`: choose a private staff sign-in password; replace the placeholder.
+- Keep `PG_READONLY_USER=echo_runtime`, `STAFF_USERNAME=staff`, and the supplied local database settings.
 
-Use Python 3.12 and a running Docker engine. Run all commands from the repository root. `requirements.txt` lists direct compatibility constraints; `requirements.lock` records the resolved Python 3.12 environment.
+Then run:
+
+```sh
+docker compose up -d --wait --wait-timeout 180
+docker compose --profile setup run --build --rm bootstrap
+docker compose --profile app up -d --build --wait --wait-timeout 180
+```
+
+The initial image build downloads CPU-only model dependencies and caches the embedding model; allow several minutes. Setup runs schema creation, repeatable demo-data ingestion, and restricted runtime grants inside a temporary container. The running app receives runtime credentials, not ingestion administrator credentials. Startup does not call Groq.
+
+Open [student chat](http://localhost:8001/) and [staff sign-in](http://localhost:8001/staff). Sign in with `STAFF_USERNAME` / `STAFF_PASSWORD` from your own `.env`. Database volumes retain messages, tickets, policies, and graph data across container restarts.
+
+A blank Groq key makes policy answer requests fall back to staff; it does not produce AI-generated answers. Your partner's key stays in their own ignored `.env`. Never commit this file.
+
+## Demo and handoff
+
+See [Docker runbook](docs/docker-demo.md) for the demo script, logs, updates, stopping, and recovery. [Partner setup](docs/partner-setup.md) includes the optional host-Python workflow and API access details. [Verification](docs/verification.md) distinguishes actual checks from model-stubbed checks and remaining manual items.
+
+## Layout
+
+```text
+app/             FastAPI, existing RAG pipeline, durable conversation storage
+web/             Student and authenticated staff interfaces
+scripts/         Offline ingestion/setup and container startup
+data/            Labeled sample policies and university structure
+database/        Repeatable PostgreSQL schema
+/docs/plans/     Four-sprint plan and progress
+/docs/reference/ Original project description
+reusable_files/  Superseded prototype and temporary marker
+/tests/          Local integration checks with Groq disabled
+```
+
+## Optional host Python development
+
+Use Python 3.12. After copying/configuring `.env` and starting the two database services:
 
 ```sh
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.lock
-cp .env.example .env
-# Edit .env and set GROQ_API_KEY before starting the backend.
-docker compose up -d
-# Wait until both databases are accepting connections.
-# New PostgreSQL volumes load database/schema.sql automatically.
-# This command also applies the schema to existing volumes without deleting data:
+python -m pip install -r requirements.txt
 docker compose exec -T postgres psql -U postgres -d postgres < database/schema.sql
 python scripts/insert_policies.py
 python scripts/insert_graph.py
@@ -40,14 +67,8 @@ python scripts/configure_runtime.py
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-The first policy ingestion downloads the embedding model and may take longer. Do not delete database volumes to retry setup. The `.env` file is ignored by Git. Local database credentials in the example and Compose file are demo defaults; replace the admin defaults for public deployment. `configure_runtime.py` generates a dedicated PostgreSQL role with public-view reads and conversation/ticket writes, saving its credentials to `.env`. It also creates local staff sign-in credentials in `STAFF_USERNAME` and `STAFF_PASSWORD`. Re-run it after schema changes before restarting the backend. Neo4j still uses the configured graph credentials; read-mode queries alone do not enforce graph privileges.
+`configure_runtime.py` can generate local runtime and staff passwords for this workflow. The direct dependency constraints select platform-appropriate packages; `requirements.lock` records the resolved macOS development environment. Keep a single backend process for the demo. Health: `/health`; database readiness: `/ready`; API schema: `/docs`.
 
-Open the student page at <http://localhost:8000/> and staff page at <http://localhost:8000/staff>. Both use the same origin for API calls. API schema: <http://localhost:8000/docs>; health: <http://localhost:8000/health>. Current health is a liveness response, not a full dependency readiness check.
+## Scope
 
-## Current baseline and next work
-
-The existing Python pipeline and ingestion scripts have been reused. Sprint 2 adds public-only retrieval, validated cited responses, explicit handoffs, bounded dependency calls, and optional restricted-role setup. Runtime/model evaluation is deferred to final testing; this does not certify a working cloud deployment. See [progress and blockers](docs/plans/progress.md) and the [four-sprint plan](docs/plans/implementation.md).
-
-Sprint 3 adds typed chat with optional browser voice, private conversation tokens, authenticated staff endpoints, and replies persisted in PostgreSQL. Staff sign-in uses the credentials in your local `.env`; browser credentials are kept only in page memory. Use HTTPS for any cloud deployment. Runtime, browser, access-control, and persistence checks remain deferred until final testing.
-
-For cloud hosting, the eventual start command is `python -m uvicorn app.main:app --host 0.0.0.0 --port "$PORT"`, with the host platform supplying PORT and reachable PostgreSQL/Neo4j settings. Build packaging and cloud verification remain Sprint 4 work.
+Local Docker is the agreed submission target. A Dockerfile and configurable container port also support later hosting, but a public deployment is not part of this handoff. Neo4j still uses the configured graph account, staff share one demo identity, and generated answer quality requires a live Groq check with the intended developer's key. No production readiness is claimed.

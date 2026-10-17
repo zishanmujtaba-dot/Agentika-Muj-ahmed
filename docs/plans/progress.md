@@ -5,9 +5,9 @@
 | Sprint | Status |
 | --- | --- |
 | 1 — Baseline and organization | Complete locally; external answer generation and cloud state unverified |
-| 2 — Backend reliability | Implemented; runtime checks deferred to final testing |
-| 3 — Student and staff experience | Implemented; runtime/browser checks deferred to final testing |
-| 4 — Deployment and submission | Pending |
+| 2 — Backend reliability | Local integration and retrieval checks passed; live Groq check reserved for partner |
+| 3 — Student and staff experience | Local integration and browser handoff/persistence checks passed |
+| 4 — Deployment and submission | Local Docker package and demo runbook complete; no public deployment required |
 
 ## Sprint 1 completed
 
@@ -68,26 +68,27 @@ python scripts/configure_runtime.py
 
 Python/JavaScript syntax and whitespace checks passed for this sprint. Application, browser, persistence, permission, concurrency, and Groq tests remain deferred by user instruction. No Groq requests were made. Completed implementation does not imply verified acceptance criteria.
 
-## Next actions
+## Sprint 4 delivery
 
-1. Sprint 4: package cloud startup, verify the actual deployment route and configuration, run the final focused verification pass, and prepare submission artifacts.
-2. Final checks must cover both students' isolation, staff authentication, message/reply persistence across restarts, duplicate asks/replies, failed storage, graph outage, citations, protected-data exclusion, request timeouts, and browser voice/text fallback.
-3. Use the designated developer/test key for approved Groq calls; previous automatic approval review required explicit permission to send sample context/questions to Groq. No live provider test has been performed.
-4. The public-policy threshold remains provisional; calibrate it using labeled questions during final testing. Keep demo sample policies labeled and document the shared staff identity and graph-privilege limitation.
+The user confirmed that a local Docker demo is acceptable. Public cloud deployment and managed database provisioning are therefore outside the final submission scope. The existing Alternate Clouds service is connected to the repository but was not deployed or given secrets.
+
+- Added a CPU-only, non-root app container with pre-cached embedding weights and port configuration, readiness endpoint, health checks, and secret exclusions.
+- Added an opt-in app profile and offline bootstrap profile to Compose. PostgreSQL/Neo4j volumes persist; bootstrap applies schema, upserts data, and grants restricted runtime access without requiring host Python.
+- Verified the image build, Docker-only bootstrap, three-container startup, public-policy role boundary, browser handoff, and actual backend replacement with history recovery.
+- Eleven integration tests passed on the host and in the final Linux image; ten retrieval fixtures passed without Groq calls. Desktop browser UI was inspected. See ../verification.md for exact evidence and unverified items.
+- Added Docker demo, setup, troubleshooting, update, stop/recovery, and partner-key instructions. Never commit .env or database backups.
+- Live Groq quality/availability remains for the partner's own key; microphone audio and a real mobile-device check remain manual. No hackathon portal submission was performed.
+
+## Handoff
+
+Use README.md and docs/docker-demo.md from repository root. Fresh users need only Git, Docker, their chosen local passwords, and optionally their own GroqCloud key. Current local demonstration containers intentionally disable Groq to preserve the user's key. Recreate the app normally after the intended developer adds their key when ready to run that live check.
 
 ## Startup and demo path
 
-Run commands from repository root using .venv. Full setup is in README.md.
-
 ```sh
-docker compose up -d
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
+docker compose up -d --wait --wait-timeout 180
+docker compose --profile setup run --build --rm bootstrap
+docker compose --profile app up -d --build --wait --wait-timeout 180
 ```
 
-The Sprint 1 preview used port 8001 because port 8000 was occupied and returned HTTP 200. It does not verify Sprint 2 or Sprint 3; restart only after the updated schema and role setup are applied.
-
-Student: http://localhost:8001/ — staff: http://localhost:8001/staff — health: http://localhost:8001/health.
-
-Use the sample attendance question, an unrelated cake question, and a staff reply as the initial demo. Public hosting is not ready until staff access and session isolation are fixed. Health currently reports liveness only.
-
-The four-sprint submission plan is implementation.md. Continue from this record rather than rebuilding the existing components.
+Fill local .env passwords first, following README.md. Student: http://localhost:8001/ — staff: http://localhost:8001/staff — readiness: http://localhost:8001/ready. Use a single hostname consistently to retain that tab's conversation token.

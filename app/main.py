@@ -129,6 +129,25 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/ready")
+def readiness():
+    try:
+        with rag_pipeline.db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT count(*) FROM public_policies")
+                policy_count = cur.fetchone()[0]
+                cur.execute("SELECT 1 FROM conversations LIMIT 1")
+                cur.execute("SELECT 1 FROM conversation_messages LIMIT 1")
+                cur.execute("SELECT 1 FROM chat_requests LIMIT 1")
+        if not policy_count:
+            raise ValueError("No policies loaded")
+    except Exception as exc:
+        logger.warning("Readiness check failed (%s)", type(exc).__name__)
+        return JSONResponse({"status": "not_ready", "detail": "Database setup or policy ingestion is incomplete."}, status_code=503)
+    return {"status": "ready", "public_policies": policy_count,
+            "provider_configured": bool(os.environ.get("GROQ_API_KEY", "").strip())}
+
+
 @app.post("/sessions", status_code=201)
 def new_session():
     return conversations.create_conversation()

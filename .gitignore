@@ -8,3 +8,6 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .DS_Store
+
+# Private local database backup from the runbook
+echo-backup.sql

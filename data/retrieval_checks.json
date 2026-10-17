@@ -1,0 +1,12 @@
+[
+  {"query":"When are semester tuition fees due?","expected":"fee-deadline-001"},
+  {"query":"Can I pay tuition one week late?","expected":"fee-deadline-001"},
+  {"query":"How late can I register for a course?","expected":"registration-late-001"},
+  {"query":"What is the minimum attendance requirement?","expected":"attendance-001"},
+  {"query":"What percentage of classes must I attend to sit the final exam?","expected":"attendance-001"},
+  {"query":"Can I withdraw from a course after week twelve?","expected":"course-withdrawal-001"},
+  {"query":"When is the student helpdesk open?","expected":"general-helpdesk-001"},
+  {"query":"How do I bake a chocolate cake?","expected":null},
+  {"query":"Who won the football World Cup in 2018?","expected":null},
+  {"query":"Write a Python sorting algorithm.","expected":null}
+]

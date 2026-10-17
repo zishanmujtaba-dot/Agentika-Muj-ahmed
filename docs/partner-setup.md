@@ -2,6 +2,10 @@
 
 Pull Sprint 1, supply your own GroqCloud API key, and run ECHO with your own local databases. Keys, virtual environments, and database contents are not shared through Git. No API key is included in this repository.
 
+## Docker-only quick path
+
+The agreed submission target is a local Docker demo. Use the [Docker runbook](docker-demo.md) to run the app and both databases without host Python or cloud services. Set your own runtime/staff passwords and optional Groq key in your local ignored .env. The host-Python workflow below remains available for development.
+
 ## 1 Pull and prepare Python
 
 Prerequisites: Python 3.12, Git, and Docker with the Docker engine running. On Windows, use Docker Desktop with Linux containers.

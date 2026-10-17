@@ -4,6 +4,7 @@ Run after database/schema.sql, using PG_ADMIN_USER/PG_ADMIN_PASSWORD in .env.
 Never import or invoke this script from the HTTP application.
 """
 import os
+import argparse
 import secrets
 from pathlib import Path
 
@@ -15,18 +16,28 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--no-env-write', action='store_true', help='Use existing environment credentials without writing a file (container setup).')
+    args = parser.parse_args()
     env_path = ROOT_DIR / ".env"
-    if not env_path.exists():
+    if not args.no_env_write and not env_path.exists():
         raise SystemExit("Copy .env.example to .env before configuring runtime access.")
     load_dotenv(env_path)
     admin = os.environ.get("PG_ADMIN_USER", "postgres")
     runtime = os.environ.get("PG_READONLY_USER", "echo_runtime")
+    if args.no_env_write and runtime in {admin, "postgres"}:
+        raise SystemExit("Set PG_READONLY_USER=echo_runtime for container setup.")
     if runtime in {admin, "postgres"}:
         runtime = "echo_runtime"
     if runtime == admin:
         raise SystemExit("Runtime and ingestion administrator must be different roles.")
     password = os.environ.get("PG_READONLY_PASSWORD", "")
-    if not password or password in {"postgres", "change_me", "set_by_configure_runtime"}:
+    invalid_password = not password or password in {"postgres", "change_me", "set_by_configure_runtime"}
+    if args.no_env_write and invalid_password:
+        raise SystemExit("Set your own PG_READONLY_PASSWORD in .env before container setup.")
+    if args.no_env_write and os.environ.get("STAFF_PASSWORD", "") in {"", "set_by_configure_runtime"}:
+        raise SystemExit("Set your own STAFF_PASSWORD in .env before container setup.")
+    if invalid_password:
         password = secrets.token_urlsafe(32)
     database = os.environ.get("PG_DBNAME", "postgres")
     conn = psycopg2.connect(
@@ -67,18 +78,19 @@ def main():
                 cur.execute(sql.SQL("GRANT SELECT ON public_policies TO {}").format(role))
                 cur.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE ON escalations TO {}").format(role))
                 cur.execute(sql.SQL("GRANT USAGE, SELECT ON SEQUENCE escalations_id_seq TO {}").format(role))
-        set_key(str(env_path), "PG_READONLY_USER", runtime)
-        set_key(str(env_path), "PG_READONLY_PASSWORD", password)
-        staff_password = os.environ.get("STAFF_PASSWORD", "")
-        if not staff_password or staff_password == "set_by_configure_runtime":
-            staff_password = secrets.token_urlsafe(24)
-        set_key(str(env_path), "STAFF_USERNAME", os.environ.get("STAFF_USERNAME", "staff"))
-        set_key(str(env_path), "STAFF_PASSWORD", staff_password)
-        env_path.chmod(0o600)
+        if not args.no_env_write:
+            set_key(str(env_path), "PG_READONLY_USER", runtime)
+            set_key(str(env_path), "PG_READONLY_PASSWORD", password)
+            staff_password = os.environ.get("STAFF_PASSWORD", "")
+            if not staff_password or staff_password == "set_by_configure_runtime":
+                staff_password = secrets.token_urlsafe(24)
+            set_key(str(env_path), "STAFF_USERNAME", os.environ.get("STAFF_USERNAME", "staff"))
+            set_key(str(env_path), "STAFF_PASSWORD", staff_password)
+            env_path.chmod(0o600)
     finally:
         conn.close()
-    print("Restricted PostgreSQL runtime role configured; credentials saved to .env. Restart the backend.")
-    print("Staff sign-in credentials are in .env (STAFF_USERNAME / STAFF_PASSWORD); no secrets displayed.")
+    print("Restricted PostgreSQL runtime role configured. Restart the backend after credential changes.")
+    print("Use your configured STAFF_USERNAME / STAFF_PASSWORD for staff sign-in. No secrets displayed.")
     print("Graph credentials are unchanged; Neo4j query read mode is not a database privilege boundary.")
 
 
