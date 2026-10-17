@@ -1,57 +1,333 @@
 {
   "departments": [
-    {"name": "Computer Science"},
-    {"name": "Registrar's Office"},
-    {"name": "Finance Office"},
-    {"name": "Discipline Committee"}
+    {
+      "name": "Computer Science"
+    },
+    {
+      "name": "Registrar's Office"
+    },
+    {
+      "name": "Finance Office"
+    },
+    {
+      "name": "Discipline Committee"
+    },
+    {
+      "name": "Library Services"
+    },
+    {
+      "name": "IT Support"
+    },
+    {
+      "name": "Student Services"
+    }
   ],
-
   "staff_contacts": [
-    {"department": "Registrar's Office", "name": "Registrar Desk", "email": "registrar@fast.edu.pk", "phone": "051-1234567", "role": "General registration queries"},
-    {"department": "Finance Office", "name": "Finance Desk", "email": "finance@fast.edu.pk", "phone": "051-1234568", "role": "Fee and payment queries"},
-    {"department": "Discipline Committee", "name": "Discipline Office", "email": "discipline@fast.edu.pk", "phone": "051-1234569", "role": "Disciplinary case queries"},
-    {"department": "Computer Science", "name": "CS Department Office", "email": "cs-dept@fast.edu.pk", "phone": "051-1234570", "role": "Course and faculty queries"}
+    {
+      "department": "Registrar's Office",
+      "name": "Registrar Desk",
+      "email": "registrar@fast.edu.pk",
+      "phone": "051-1234567",
+      "role": "General registration queries"
+    },
+    {
+      "department": "Finance Office",
+      "name": "Finance Desk",
+      "email": "finance@fast.edu.pk",
+      "phone": "051-1234568",
+      "role": "Fee and payment queries"
+    },
+    {
+      "department": "Discipline Committee",
+      "name": "Discipline Office",
+      "email": "discipline@fast.edu.pk",
+      "phone": "051-1234569",
+      "role": "Disciplinary case queries"
+    },
+    {
+      "department": "Computer Science",
+      "name": "CS Department Office",
+      "email": "cs-dept@fast.edu.pk",
+      "phone": "051-1234570",
+      "role": "Course and faculty queries"
+    }
   ],
-
   "teachers": [
-    {"name": "Dr. Ayesha Khan", "department": "Computer Science", "email": "ayesha.khan@fast.edu.pk"},
-    {"name": "Dr. Bilal Ahmed", "department": "Computer Science", "email": "bilal.ahmed@fast.edu.pk"},
-    {"name": "Ms. Sara Malik", "department": "Computer Science", "email": "sara.malik@fast.edu.pk"}
+    {
+      "name": "Dr. Ayesha Khan",
+      "department": "Computer Science",
+      "email": "ayesha.khan@fast.edu.pk"
+    },
+    {
+      "name": "Dr. Bilal Ahmed",
+      "department": "Computer Science",
+      "email": "bilal.ahmed@fast.edu.pk"
+    },
+    {
+      "name": "Ms. Sara Malik",
+      "department": "Computer Science",
+      "email": "sara.malik@fast.edu.pk"
+    }
   ],
-
   "courses": [
-    {"code": "CS1101", "title": "Programming Fundamentals", "department": "Computer Science"},
-    {"code": "CS2203", "title": "Data Structures", "department": "Computer Science"},
-    {"code": "CS3301", "title": "Database Systems", "department": "Computer Science"}
+    {
+      "code": "CS1101",
+      "title": "Programming Fundamentals",
+      "department": "Computer Science"
+    },
+    {
+      "code": "CS2203",
+      "title": "Data Structures",
+      "department": "Computer Science"
+    },
+    {
+      "code": "CS3301",
+      "title": "Database Systems",
+      "department": "Computer Science"
+    }
   ],
-
   "semesters": [
-    {"label": "Fall 2026"},
-    {"label": "Spring 2027"}
+    {
+      "label": "Fall 2026"
+    },
+    {
+      "label": "Spring 2027"
+    }
   ],
-
   "teaches": [
-    {"teacher": "Dr. Ayesha Khan", "course": "CS1101"},
-    {"teacher": "Dr. Bilal Ahmed", "course": "CS2203"},
-    {"teacher": "Ms. Sara Malik", "course": "CS3301"}
+    {
+      "teacher": "Dr. Ayesha Khan",
+      "course": "CS1101"
+    },
+    {
+      "teacher": "Dr. Bilal Ahmed",
+      "course": "CS2203"
+    },
+    {
+      "teacher": "Ms. Sara Malik",
+      "course": "CS3301"
+    }
   ],
-
   "offered_in": [
-    {"course": "CS1101", "semester": "Fall 2026"},
-    {"course": "CS2203", "semester": "Fall 2026"},
-    {"course": "CS3301", "semester": "Spring 2027"}
+    {
+      "course": "CS1101",
+      "semester": "Fall 2026"
+    },
+    {
+      "course": "CS2203",
+      "semester": "Fall 2026"
+    },
+    {
+      "course": "CS3301",
+      "semester": "Spring 2027"
+    }
   ],
-
   "policy_escalations": [
-    {"policy_source_id": "fee-deadline-001", "department": "Finance Office"},
-    {"policy_source_id": "registration-late-001", "department": "Registrar's Office"},
-    {"policy_source_id": "attendance-001", "department": "Registrar's Office"},
-    {"policy_source_id": "course-withdrawal-001", "department": "Registrar's Office"},
-    {"policy_source_id": "general-helpdesk-001", "department": "Registrar's Office"},
-    {"policy_source_id": "disciplinary-record-001", "department": "Discipline Committee"}
+    {
+      "policy_source_id": "fee-deadline-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "registration-late-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "attendance-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "course-withdrawal-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "general-helpdesk-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "disciplinary-record-001",
+      "department": "Discipline Committee"
+    },
+    {
+      "policy_source_id": "fee-receipt-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "fee-installments-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "fee-refund-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "fee-scholarship-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "fee-voucher-001",
+      "department": "Finance Office"
+    },
+    {
+      "policy_source_id": "registration-prerequisite-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "registration-load-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "registration-add-drop-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "registration-clash-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "registration-waitlist-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "registration-freeze-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "attendance-correction-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "attendance-lab-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "exam-id-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "exam-missed-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "exam-devices-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "grade-review-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "grade-incomplete-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "course-repeat-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "academic-standing-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "academic-integrity-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "transcript-request-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "graduation-clearance-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "transfer-credit-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "library-loans-001",
+      "department": "Library Services"
+    },
+    {
+      "policy_source_id": "library-overdue-001",
+      "department": "Library Services"
+    },
+    {
+      "policy_source_id": "it-password-001",
+      "department": "IT Support"
+    },
+    {
+      "policy_source_id": "it-wifi-001",
+      "department": "IT Support"
+    },
+    {
+      "policy_source_id": "student-id-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "student-details-001",
+      "department": "Registrar's Office"
+    },
+    {
+      "policy_source_id": "accessibility-001",
+      "department": "Student Services"
+    },
+    {
+      "policy_source_id": "counseling-001",
+      "department": "Student Services"
+    },
+    {
+      "policy_source_id": "room-booking-001",
+      "department": "Student Services"
+    },
+    {
+      "policy_source_id": "internship-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "fyp-001",
+      "department": "Computer Science"
+    },
+    {
+      "policy_source_id": "official-dates-001",
+      "department": "Registrar's Office"
+    }
   ],
-
   "policy_related": [
-    {"from": "fee-deadline-001", "to": "registration-late-001"}
+    {
+      "from": "fee-deadline-001",
+      "to": "registration-late-001"
+    },
+    {
+      "from": "fee-receipt-001",
+      "to": "fee-deadline-001"
+    },
+    {
+      "from": "fee-installments-001",
+      "to": "fee-deadline-001"
+    },
+    {
+      "from": "fee-refund-001",
+      "to": "course-withdrawal-001"
+    },
+    {
+      "from": "registration-add-drop-001",
+      "to": "course-withdrawal-001"
+    },
+    {
+      "from": "attendance-lab-001",
+      "to": "attendance-001"
+    },
+    {
+      "from": "attendance-correction-001",
+      "to": "attendance-001"
+    },
+    {
+      "from": "library-overdue-001",
+      "to": "library-loans-001"
+    },
+    {
+      "from": "exam-id-001",
+      "to": "student-id-001"
+    }
   ]
 }

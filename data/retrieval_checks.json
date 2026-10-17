@@ -1,12 +1,186 @@
 [
-  {"query":"When are semester tuition fees due?","expected":"fee-deadline-001"},
-  {"query":"Can I pay tuition one week late?","expected":"fee-deadline-001"},
-  {"query":"How late can I register for a course?","expected":"registration-late-001"},
-  {"query":"What is the minimum attendance requirement?","expected":"attendance-001"},
-  {"query":"What percentage of classes must I attend to sit the final exam?","expected":"attendance-001"},
-  {"query":"Can I withdraw from a course after week twelve?","expected":"course-withdrawal-001"},
-  {"query":"When is the student helpdesk open?","expected":"general-helpdesk-001"},
-  {"query":"How do I bake a chocolate cake?","expected":null},
-  {"query":"Who won the football World Cup in 2018?","expected":null},
-  {"query":"Write a Python sorting algorithm.","expected":null}
+  {
+    "query": "When are semester tuition fees due?",
+    "expected": "fee-deadline-001"
+  },
+  {
+    "query": "Can I pay tuition one week late?",
+    "expected": "fee-deadline-001"
+  },
+  {
+    "query": "How late can I register for a course?",
+    "expected": "registration-late-001"
+  },
+  {
+    "query": "What is the minimum attendance requirement?",
+    "expected": "attendance-001"
+  },
+  {
+    "query": "What percentage of classes must I attend to sit the final exam?",
+    "expected": "attendance-001"
+  },
+  {
+    "query": "Can I withdraw from a course after week twelve?",
+    "expected": "course-withdrawal-001"
+  },
+  {
+    "query": "When is the student helpdesk open?",
+    "expected": "general-helpdesk-001"
+  },
+  {
+    "query": "How do I bake a chocolate cake?",
+    "expected": null
+  },
+  {
+    "query": "Who won the football World Cup in 2018?",
+    "expected": null
+  },
+  {
+    "query": "Write a Python sorting algorithm.",
+    "expected": null
+  },
+  {
+    "query": "My tuition payment is not showing in the portal. What should I do?",
+    "expected": "fee-receipt-001"
+  },
+  {
+    "query": "Does applying for tuition installments extend my payment deadline?",
+    "expected": "fee-installments-001"
+  },
+  {
+    "query": "How much tuition is refundable if I leave on day ten of classes?",
+    "expected": "fee-refund-001"
+  },
+  {
+    "query": "What documents are needed for need-based financial assistance?",
+    "expected": "fee-scholarship-001"
+  },
+  {
+    "query": "My fee voucher has the wrong course load. Can I edit it myself?",
+    "expected": "fee-voucher-001"
+  },
+  {
+    "query": "Can I register for a course before passing its prerequisite?",
+    "expected": "registration-prerequisite-001"
+  },
+  {
+    "query": "Can I register for 20 credit hours without approval?",
+    "expected": "registration-load-001"
+  },
+  {
+    "query": "How long is the add and drop window?",
+    "expected": "registration-add-drop-001"
+  },
+  {
+    "query": "What information should I provide about a timetable clash?",
+    "expected": "registration-clash-001"
+  },
+  {
+    "query": "Does joining a course waitlist guarantee a seat?",
+    "expected": "registration-waitlist-001"
+  },
+  {
+    "query": "How many semesters can I freeze during my degree?",
+    "expected": "registration-freeze-001"
+  },
+  {
+    "query": "How do I report an incorrectly marked absence?",
+    "expected": "attendance-correction-001"
+  },
+  {
+    "query": "Can high lecture attendance make up for low lab attendance?",
+    "expected": "attendance-lab-001"
+  },
+  {
+    "query": "What identification should I bring to a final examination?",
+    "expected": "exam-id-001"
+  },
+  {
+    "query": "How soon must I request a make-up exam after illness?",
+    "expected": "exam-missed-001"
+  },
+  {
+    "query": "Does an open-book exam allow me to use my phone?",
+    "expected": "exam-devices-001"
+  },
+  {
+    "query": "What is the deadline for requesting a mark review?",
+    "expected": "grade-review-001"
+  },
+  {
+    "query": "Is an incomplete grade automatically available instead of failing?",
+    "expected": "grade-incomplete-001"
+  },
+  {
+    "query": "Does repeating a failed course erase the previous attempt from my transcript?",
+    "expected": "course-repeat-001"
+  },
+  {
+    "query": "What should a student with a cumulative GPA below 2.00 do before registration?",
+    "expected": "academic-standing-001"
+  },
+  {
+    "query": "Can I assume generative AI is allowed on every assignment?",
+    "expected": "academic-integrity-001"
+  },
+  {
+    "query": "How long does a complete official transcript request usually take?",
+    "expected": "transcript-request-001"
+  },
+  {
+    "query": "Which clearances are needed before a degree certificate is issued?",
+    "expected": "graduation-clearance-001"
+  },
+  {
+    "query": "Does a similar course name automatically qualify for transfer credit?",
+    "expected": "transfer-credit-001"
+  },
+  {
+    "query": "How many library books can I borrow and for how long?",
+    "expected": "library-loans-001"
+  },
+  {
+    "query": "What is the daily fine for an overdue library book?",
+    "expected": "library-overdue-001"
+  },
+  {
+    "query": "How can I reset my student portal password?",
+    "expected": "it-password-001"
+  },
+  {
+    "query": "What information should I send IT when campus Wi-Fi sign-in fails?",
+    "expected": "it-wifi-001"
+  },
+  {
+    "query": "What should I do if I lose my university ID card?",
+    "expected": "student-id-001"
+  },
+  {
+    "query": "Can I change my legal name directly through this chat?",
+    "expected": "student-details-001"
+  },
+  {
+    "query": "When should I request examination accessibility accommodations?",
+    "expected": "accessibility-001"
+  },
+  {
+    "query": "How can I arrange a counseling appointment?",
+    "expected": "counseling-001"
+  },
+  {
+    "query": "How far in advance should a society request an event room?",
+    "expected": "room-booking-001"
+  },
+  {
+    "query": "Does an internship offer automatically count for academic credit?",
+    "expected": "internship-001"
+  },
+  {
+    "query": "What should our final-year project proposal include?",
+    "expected": "fyp-001"
+  },
+  {
+    "query": "Does this sample rulebook contain the current examination timetable?",
+    "expected": "official-dates-001"
+  }
 ]

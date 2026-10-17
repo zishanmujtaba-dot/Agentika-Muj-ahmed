@@ -36,6 +36,8 @@ A blank Groq key makes policy answer requests fall back to staff; it does not pr
 
 ## Demo and handoff
 
+The expanded [student rulebook](docs/reference/student-rulebook.md) contains 41 fictional public policies. Use the [demo question guide](docs/demo-questions.md) for supported answers, edge cases and human handoffs. The [memory assessment](docs/reference/conversation-memory.md) explains why chat history is persisted but previous turns are not sent to the model. The runtime uses the Groq SDK directly, without LangChain or LangGraph.
+
 See [Docker runbook](docs/docker-demo.md) for the demo script, logs, updates, stopping, and recovery. [Partner setup](docs/partner-setup.md) includes the optional host-Python workflow and API access details. [Verification](docs/verification.md) distinguishes actual checks from model-stubbed checks and remaining manual items.
 
 ## Layout

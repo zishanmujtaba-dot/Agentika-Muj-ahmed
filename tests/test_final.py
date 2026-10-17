@@ -176,16 +176,26 @@ class FinalIntegration(unittest.TestCase):
                 with conn.cursor() as cur: cur.execute('UPDATE policies SET text = text WHERE FALSE')
         with rag.db_connection() as conn:
             with conn.cursor() as cur:
-                cur.execute('SELECT count(*) FROM public_policies');self.assertEqual(cur.fetchone()[0],5)
+                expected_public = sum(p['access_level'] == 'public' for p in json.loads(
+                    (Path(__file__).resolve().parents[1] / 'data/sample_policies.json').read_text()))
+                cur.execute('SELECT count(*) FROM public_policies')
+                self.assertEqual(cur.fetchone()[0], expected_public)
                 cur.execute("SELECT count(*) FROM public_policies WHERE source_id='disciplinary-record-001'")
                 self.assertEqual(cur.fetchone()[0],0)
 
     def test_category_miss_falls_back_to_public_search(self):
-        with patch.object(rag,'parse_query_intent',return_value={
-            'category':'general','semantic_query':'What is the minimum attendance requirement?'}):
+        retrieve = rag.retrieve_policies
+        # Force an empty hinted search; a growing general category may now match
+        # attendance-related language, so do not depend on accidental seed distances.
+        with patch.object(rag, 'retrieve_policies', side_effect=lambda intent:
+                [] if intent.get('category') else retrieve(intent)) as retrieval, \
+                patch.object(rag,'parse_query_intent',return_value={
+                    'category':'general','semantic_query':'What is the minimum attendance requirement?'}):
             result=self.ask(self.session(),'What is the minimum attendance requirement?').json()
             self.assertEqual(result['status'],'answered')
             self.assertIn('attendance-001',result['source_ids'])
+            self.assertEqual([call.args[0]['category'] for call in retrieval.call_args_list],
+                             ['general', None])
 
     def test_concurrent_retries_do_not_duplicate_messages(self):
         session=self.session(); request_id=str(uuid4())
@@ -197,7 +207,7 @@ class FinalIntegration(unittest.TestCase):
         self.assertEqual(len(self.poll(session).json()['messages']),2)
 
     def test_pages_assets_and_readiness(self):
-        for url in ['/','/staff','/assets/student.js','/assets/staff.js','/assets/styles.css','/ready','/docs']:
+        for url in ['/','/staff','/assets/student.js','/assets/voice-input.js','/assets/staff.js','/assets/styles.css','/ready','/docs']:
             with self.subTest(url=url): self.assertEqual(self.client.get(url).status_code,200)
         self.assertIn("script-src 'self'", self.client.get('/').headers['Content-Security-Policy'])
         self.assertEqual(self.client.get('/staff/auth',auth=('staff','wrong')).status_code,401)

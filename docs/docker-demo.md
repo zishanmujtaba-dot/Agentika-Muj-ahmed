@@ -72,3 +72,15 @@ Do not add `-v`: it deletes the databases. Return to the previous Git commit if 
 ## Later public hosting
 
 The optional Alternate Clouds project is connected to the repository but has not been deployed. A public host would need the same app plus reachable, persistent PostgreSQL and Neo4j containers. The app's Dockerfile binds `${PORT:-3000}` and runs as a non-root user. Do not point a cloud app at `localhost` databases on a laptop or upload personal keys without deciding who owns the deployment. Public hosting is outside the agreed local-demo submission scope.
+
+## Expanded reference and questions
+
+See [student rulebook](reference/student-rulebook.md) and [demo questions](demo-questions.md). These are fictional demo policies. After pulling updated seed files, rerun the bootstrap and rebuild the app using the setup commands above. Existing database volumes and conversations are retained. No Groq calls are made during ingestion.
+
+Run the local retrieval checks without paid model usage:
+
+```sh
+docker compose --profile app exec -T app python scripts/evaluate_retrieval.py
+```
+
+This validates policy selection only. Check live answer quality and model-stage handoffs separately with the configured key.

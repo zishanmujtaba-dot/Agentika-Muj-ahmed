@@ -37,3 +37,9 @@ For the browser demo without model usage, leave GROQ_API_KEY blank. Explicit hum
 ## Reply context and interface update
 
 Staff replies now quote the complete original question, with a ticket lookup fallback for replies saved before this update. Student timestamps no longer require ticket-number tracking. New regression coverage verifies that a reply references its original question even when newer questions exist, and that older metadata recovers the question from the ticket. Twelve integration tests passed with Groq disabled. The student and staff screens were visually reviewed in a separate preview, and the quoted-question handoff was exercised there without model calls.
+
+## Expanded rulebook update
+
+Expanded the fictional demo dataset from five to 41 public policies, retaining one protected fixture. Added department routing for every policy and related-policy links. The readable public reference is `docs/reference/student-rulebook.md`; demo prompts and expected paths are in `docs/demo-questions.md`. Memory architecture and the decision to keep current model calls standalone are documented in `docs/reference/conversation-memory.md`. No LangChain/LangGraph dependency or conversational model buffer was added.
+
+Offline ingestion completed against the local Docker databases without deleting conversation volumes. All 46 labelled retrieval checks passed; all 12 integration tests passed with Groq disabled/stubbed. Updated the fixture count assertion and forced-empty category fallback test so they do not rely on the original five-policy corpus. These results do not establish live model answer accuracy; review the live answers with the intended demo key. No Groq calls were made for these checks.
