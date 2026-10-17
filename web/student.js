@@ -4,12 +4,15 @@ const question = document.getElementById("question");
 const messages = document.getElementById("messages");
 const statusEl = document.getElementById("status");
 const sendBtn = document.getElementById("sendBtn");
+const callBtn = document.getElementById("callBtn");
+const callStatus = document.getElementById("callStatus");
+const mutedRequests = new Set();
 const talkBtn = document.getElementById("talkBtn");
 const newBtn = document.getElementById("newChat");
 const speechEnabled = document.getElementById("speakAnswers");
 const SESSION_KEY = "echo.conversation.v1";
 const PENDING_KEY = "echo.pending.v1";
-let session = null, pending = null, busy = false, ready = false;
+let session = null, pending = null, busy = false, ready = false, inFlightRequestId = null;
 let cursor = 0, generation = 0, pollTimer, pollPromise = null, retryDelay = 3000;
 const shown = new Set();
 
@@ -39,15 +42,27 @@ async function api(url, options = {}, timeout = 45000) {
 function tokenHeaders() { return { "X-Conversation-Token": session.session_token }; }
 function updateControls() {
   sendBtn.disabled = busy || !ready || Boolean(voice?.stopping);
-  talkBtn.disabled = busy || !ready || !voice || voice.stopping;
-  newBtn.disabled = busy || listening;
-  question.readOnly = busy || listening;
+  talkBtn.disabled = busy || !ready || !voice || voice.stopping || Boolean(liveCall?.active);
+  callBtn.disabled = !liveCall || (!liveCall.active && (busy || !ready || listening || liveCall.processing));
+  callBtn.textContent = liveCall?.active ? "End voice call" : "Start voice call";
+  callBtn.setAttribute("aria-pressed", String(Boolean(liveCall?.active)));
+  newBtn.disabled = busy || listening || Boolean(liveCall?.active);
+  question.readOnly = busy || listening || Boolean(liveCall?.active);
   sendBtn.textContent = busy ? "Sending…" : voice?.stopping ? "Finishing voice…" : listening ? "Finish and send" : pending ? "Retry question" : "Send question";
-  document.querySelectorAll("[data-question]").forEach(button => { button.disabled = busy || listening; });
+  document.querySelectorAll("[data-question]").forEach(button => { button.disabled = busy || listening || Boolean(liveCall?.active); });
 }
-function speak(text) {
-  if (listening || !speechEnabled.checked || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
-  speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+function speak(text, requestId) {
+  if (mutedRequests.has(String(requestId)) || (liveCall?.active && (liveCall.speaking || liveCall.draft().trim()))) return;
+  if (listening || (!speechEnabled.checked && !liveCall?.active) || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  if (liveCall?.active) {
+    callStatus.textContent = "ECHO is speaking. Speak to interrupt.";
+    utterance.addEventListener("end", () => {
+      if (liveCall.active && !liveCall.draft()) callStatus.textContent = "Listening. Pause for two seconds to send.";
+    });
+  }
+  speechSynthesis.speak(utterance);
 }
 document.getElementById("stopSpeech").addEventListener("click", () => window.speechSynthesis?.cancel());
 speechEnabled.addEventListener("change", () => { if (!speechEnabled.checked) window.speechSynthesis?.cancel(); });
@@ -76,7 +91,7 @@ function renderMessage(message, announce = false) {
   meta.textContent = time;
   if (detail.status === "unavailable") meta.textContent += " · Follow-up was not saved";
   bubble.append(meta); messages.append(bubble); messages.scrollTop = messages.scrollHeight;
-  if (announce && kind !== "student") speak(message.text);
+  if (announce && kind !== "student") speak(message.text, message.request_id);
   if (announce && kind === "staff" && !busy) statusEl.textContent = "A staff reply has arrived.";
 }
 
@@ -89,7 +104,7 @@ function syncMessages() {
       headers: { "X-Conversation-Token": active.session_token },
     }, 12000);
     if (epoch !== generation) return false;
-    for (const message of data.messages) renderMessage(message, hadHistory);
+    for (const message of data.messages) renderMessage(message, hadHistory || Boolean(liveCall?.active));
     cursor = data.cursor; retryDelay = 3000;
     return data.has_more;
   })();
@@ -144,35 +159,39 @@ document.querySelectorAll("[data-question]").forEach(button => button.addEventLi
   question.value = button.dataset.question; question.focus();
 }));
 
-async function sendQuestion(event) {
+async function sendQuestion(event, voiceQuery = null) {
   event?.preventDefault();
   if (listening) { voice?.stop(true); return; }
-  const query = question.value.trim();
+  if (liveCall?.active && voiceQuery === null) { liveCall.flush(); return; }
+  const query = (voiceQuery ?? question.value).trim();
   if (!query || busy || !ready) return;
   if (!pending || pending.query !== query) pending = { query, request_id: requestId() };
-  store(PENDING_KEY, pending); busy = true; updateControls();
+  store(PENDING_KEY, pending); inFlightRequestId = String(pending.request_id); busy = true; updateControls();
   statusEl.textContent = "Checking the policy rulebook…";
   try {
     const result = await api("/ask", {
       method: "POST", headers: { "Content-Type": "application/json", ...tokenHeaders() },
       body: JSON.stringify({ ...pending, session_id: session.session_id }),
     });
-    pending = null; forget(PENDING_KEY); question.value = "";
+    pending = null; forget(PENDING_KEY); if (question.value.trim() === query) question.value = "";
     statusEl.textContent = result.status === "escalated" ? `Sent to ${result.department}. You can return to this tab for a staff reply.`
       : result.status === "unavailable" ? "The follow-up could not be saved. Try a new question or contact the helpdesk."
       : "Answered from the policy rulebook.";
     await syncMessages().catch(() => { /* Scheduled polling will recover the saved response. */ });
+    return true;
   } catch (error) {
     if (error.status === 401) { ready = false; statusEl.textContent = "Conversation access denied. Start a new conversation."; }
     else if (error.status === 409 && error.retry) statusEl.textContent = "This question is still processing. Wait a few seconds, then Retry question.";
     else statusEl.textContent = "The request did not finish here. Retry the same question to recover its saved result.";
-  } finally { busy = false; updateControls(); question.focus(); }
+    return false;
+  } finally { busy = false; inFlightRequestId = null; updateControls(); question.focus(); }
 }
 form.addEventListener("submit", sendQuestion);
 // Stop recognition even if the required textarea is still empty/interim; wait
 // for the native final result before submitting the question.
 sendBtn.addEventListener("click", event => {
-  if (listening) { event.preventDefault(); voice?.stop(true); }
+  if (liveCall?.active) { event.preventDefault(); liveCall.flush(); }
+  else if (listening) { event.preventDefault(); voice?.stop(true); }
 });
 question.addEventListener("keydown", event => {
   if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
@@ -205,15 +224,59 @@ const voice = SpeechRecognition ? new EchoVoiceInput({
       : "Voice input stopped. Review the text or type your question.";
   },
 }) : null;
+const liveCall = SpeechRecognition && window.speechSynthesis && window.SpeechSynthesisUtterance ? new EchoLiveCall({
+  Recognition: SpeechRecognition,
+  onText: text => { question.value = text; },
+  onSpeech: () => {
+    window.speechSynthesis.cancel();
+    if (busy && inFlightRequestId) {
+      mutedRequests.add(inFlightRequestId);
+      if (mutedRequests.size > 100) mutedRequests.delete(mutedRequests.values().next().value);
+    }
+    callStatus.textContent = "Listening to you. Pause for two seconds to send.";
+  },
+  onSettled: () => updateControls(),
+  onSubmit: async text => {
+    callStatus.textContent = "Waiting for ECHO. You can keep speaking to ask the next question.";
+    const sent = await sendQuestion(null, text);
+    if (!sent && liveCall.active) {
+      liveCall.fail("send-failed");
+      if (!question.value.trim()) question.value = text;
+    }
+  },
+  onState: active => {
+    if (!active) window.speechSynthesis.cancel();
+    callStatus.hidden = !active;
+    callStatus.textContent = active ? "Listening. Pause for two seconds to send. Use headphones to avoid speaker echo." : "";
+    updateControls();
+  },
+  onError: error => {
+    callStatus.hidden = false;
+    callStatus.textContent = error === "not-allowed" || error === "service-not-allowed"
+      ? "Call ended: microphone access was denied. You can still type."
+      : error === "send-failed" ? "Call paused because sending failed. Review your draft or retry the last question."
+      : "Call ended because voice input stopped. Your draft is kept; try starting the call again.";
+  },
+}) : null;
+callBtn.addEventListener("click", () => {
+  if (!liveCall) return;
+  if (liveCall.active) { liveCall.stop(); return; }
+  if (busy || !ready || listening) return;
+  if (question.value.trim() || pending) {
+    statusEl.textContent = "Send or clear your existing draft before starting a live call.";
+    return;
+  }
+  window.speechSynthesis.cancel(); liveCall.start();
+});
 if (!voice) document.getElementById("voiceNote").textContent = "Speech recognition is unavailable in this browser. Text chat is fully available.";
-else document.getElementById("voiceNote").textContent = "Voice captures one utterance at a time. Pause to review, or choose Finish and send.";
+else document.getElementById("voiceNote").textContent = "Use voice records one question for review. Voice call sends after two seconds of silence and lets you interrupt ECHO. Use headphones; recognition depends on your browser’s speech service.";
 talkBtn.addEventListener("click", () => {
   if (!voice || busy || !ready || voice.stopping) return;
   if (listening) { voice.stop(true); return; }
   window.speechSynthesis?.cancel();
   if (voice.start(question.value)) statusEl.textContent = "Listening… pause to review, or choose Finish and send.";
 });
-window.addEventListener("pagehide", () => { voice?.cancel(); window.speechSynthesis?.cancel(); clearTimeout(pollTimer); });
+window.addEventListener("pagehide", () => { voice?.cancel(); liveCall?.stop(); window.speechSynthesis?.cancel(); clearTimeout(pollTimer); });
 window.addEventListener("pageshow", event => {
   if (event.persisted && session && ready) { clearTimeout(pollTimer); pollLoop(generation); }
 });

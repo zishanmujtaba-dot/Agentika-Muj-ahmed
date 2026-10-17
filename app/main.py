@@ -161,7 +161,9 @@ def ask(req: AskRequest, session_token: str | None = Header(default=None, alias=
     if previous is not None:
         return previous
     try:
-        result = rag_pipeline.answer_query(req.query, session_id=session_id)
+        previous_question = conversations.previous_student_question(session_id, request_id)
+        result = rag_pipeline.answer_query(req.query, session_id=session_id,
+                                           previous_question=previous_question)
     except Exception as exc:
         # Complete the reserved request with a durable, honest fallback when possible.
         logger.warning("Question processing failed (%s)", type(exc).__name__)

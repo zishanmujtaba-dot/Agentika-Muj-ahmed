@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ECHO · Student helpdesk</title>
-  <link rel="stylesheet" href="/assets/styles.css"><script src="/assets/voice-input.js" defer></script><script src="/assets/student.js" defer></script>
+  <link rel="stylesheet" href="/assets/styles.css"><script src="/assets/voice-input.js" defer></script><script src="/assets/live-call.js" defer></script><script src="/assets/student.js" defer></script>
 </head>
 <body>
   <main class="shell">
@@ -13,7 +13,8 @@
       <div class="chat-toolbar"><div><h2>Your conversation</h2><p>Staff replies will appear here.</p></div><button id="newChat" type="button" class="secondary">New conversation</button></div>
       <div id="messages" role="log" aria-live="polite" aria-relevant="additions"><p id="emptyChat" class="empty">Ask a question to get started.</p></div>
       <div class="suggestions" aria-label="Example questions"><span>Try asking about</span><button type="button" data-question="What is the minimum attendance requirement?">Attendance</button><button type="button" data-question="When can I withdraw from a course?">Course withdrawal</button><button type="button" data-question="I want to speak to a staff member.">Speaking to staff</button></div>
-      <form id="chatForm" class="composer"><label for="question">Your question</label><textarea id="question" rows="2" maxlength="2000" placeholder="Write your question here…" required></textarea><div class="composer-actions"><button id="talkBtn" type="button" class="secondary">Use voice</button><span class="keyboard-hint">Enter to send · Shift + Enter for a new line</span><button id="sendBtn" type="submit">Send question</button></div></form>
+      <form id="chatForm" class="composer"><label for="question">Your question</label><textarea id="question" rows="2" maxlength="2000" placeholder="Write your question here…" required></textarea><div class="composer-actions"><button id="talkBtn" type="button" class="secondary">Use voice</button><button id="callBtn" type="button" class="secondary" aria-pressed="false">Start voice call</button><span class="keyboard-hint">Enter to send · Shift + Enter for a new line</span><button id="sendBtn" type="submit">Send question</button></div></form>
+      <p id="callStatus" class="call-status" role="status" hidden></p>
       <div class="chat-footer"><p id="status" role="status">Connecting…</p><div class="audio-options"><label class="toggle"><input id="speakAnswers" type="checkbox">Read replies aloud</label><button id="stopSpeech" type="button" class="quiet">Stop audio</button></div></div>
     </section>
     <footer class="page-notes"><p>Demo policies. Refer to official university guidance for decisions.</p><p id="voiceNote">Voice input depends on your browser and may use its speech service.</p></footer>

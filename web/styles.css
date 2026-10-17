@@ -127,3 +127,7 @@ textarea { resize: vertical; min-height: 60px; max-height: 240px; line-height: 1
   .login-panel { max-width: 100%; margin-top: 5px; }
   .ticket h3 { font-size: 15px; }
 }
+
+.call-status { margin: 0; padding: .8rem 1.2rem; background: #edf3ef; color: #264e3a; border-top: 1px solid var(--line, #d8ddd7); font-size: .875rem; }
+#callBtn[aria-pressed="true"] { background: #f9e9e6; border-color: #c57d70; color: #793c32; }
+.composer-actions { flex-wrap: wrap; }

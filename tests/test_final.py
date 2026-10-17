@@ -91,6 +91,29 @@ class FinalIntegration(unittest.TestCase):
                 self.assertIn('attendance-001', result['source_ids'])
                 self.assertTrue(result['citations'][0]['quote'])
 
+    def test_one_previous_prompt_memory_and_session_isolation(self):
+        a, b = self.session(), self.session()
+        first = 'When are semester tuition fees due?'
+        self.ask(a, first)
+        self.assertIsNone(self.calls[-1]['previous_student_question'])
+        second = 'What if I miss it?'
+        request_id = str(uuid4())
+        response = self.ask(a, second, request_id).json()
+        self.assertEqual(response['status'], 'answered', response)
+        self.assertIn('fee-deadline-001', response['source_ids'])
+        self.assertEqual(self.calls[-1]['previous_student_question'], first)
+        self.assertEqual(self.calls[-1]['question'], second)
+        before = len(self.calls)
+        self.ask(a, second, request_id)
+        self.assertEqual(len(self.calls), before)  # Replays do not create another turn.
+        self.ask(a, 'What is the minimum attendance requirement?')
+        self.assertEqual(self.calls[-1]['previous_student_question'], second)
+        self.assertNotEqual(self.calls[-1]['previous_student_question'], first)
+        self.ask(b, 'What is the minimum attendance requirement?')
+        self.assertIsNone(self.calls[-1]['previous_student_question'])
+        switched = rag.followup_intent('What about library books?', first)
+        self.assertEqual(switched['semantic_query'], 'What about library books?')
+
     def test_unknown_retry_and_staff_reply_isolation(self):
         a,b = self.session(),self.session(); request_id = str(uuid4())
         first = self.ask(a, 'How do I bake a chocolate cake?', request_id).json()
@@ -207,7 +230,7 @@ class FinalIntegration(unittest.TestCase):
         self.assertEqual(len(self.poll(session).json()['messages']),2)
 
     def test_pages_assets_and_readiness(self):
-        for url in ['/','/staff','/assets/student.js','/assets/voice-input.js','/assets/staff.js','/assets/styles.css','/ready','/docs']:
+        for url in ['/','/staff','/assets/student.js','/assets/voice-input.js','/assets/live-call.js','/assets/staff.js','/assets/styles.css','/ready','/docs']:
             with self.subTest(url=url): self.assertEqual(self.client.get(url).status_code,200)
         self.assertIn("script-src 'self'", self.client.get('/').headers['Content-Security-Policy'])
         self.assertEqual(self.client.get('/staff/auth',auth=('staff','wrong')).status_code,401)

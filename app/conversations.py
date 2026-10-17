@@ -82,6 +82,29 @@ def reserve_question(session_id, request_id, query):
             return claim, None
 
 
+def previous_student_question(session_id, request_id):
+    """One completed earlier prompt, scoped to this request's authenticated session.
+
+    Message order excludes newer concurrent turns and the current request itself.
+    No assistant/staff answer is promoted into policy evidence.
+    """
+    with db_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """SELECT previous.text FROM conversation_messages previous
+                   JOIN chat_requests finished ON finished.session_id = previous.session_id
+                     AND finished.request_id = previous.request_id
+                   WHERE previous.session_id = %s AND previous.sender = 'student'
+                     AND finished.response IS NOT NULL
+                     AND previous.id < (SELECT id FROM conversation_messages
+                         WHERE session_id = %s AND request_id = %s AND sender = 'student')
+                   ORDER BY previous.id DESC LIMIT 1""",
+                (session_id, session_id, request_id),
+            )
+            row = cur.fetchone()
+    return row[0][:2000] if row else None
+
+
 def finish_question(session_id, request_id, claim, result):
     with db_connection() as conn:
         with conn.cursor() as cur:
