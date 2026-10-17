@@ -6,7 +6,7 @@
 | --- | --- |
 | 1 — Baseline and organization | Complete locally; external answer generation and cloud state unverified |
 | 2 — Backend reliability | Implemented; runtime checks deferred to final testing |
-| 3 — Student and staff experience | Pending |
+| 3 — Student and staff experience | Implemented; runtime/browser checks deferred to final testing |
 | 4 — Deployment and submission | Pending |
 
 ## Sprint 1 completed
@@ -54,12 +54,26 @@ docker compose exec -T postgres psql -U postgres -d postgres < database/schema.s
 python scripts/configure_runtime.py
 ```
 
+## Sprint 3 implemented
+
+- Student chat supports typed questions and optional voice, complete conversation history, clear pending/escalated/error states, sample prompts, mobile layout, and opt-in interruptible speech output.
+- Voice recognition sends once on the end event after explicit stop, with interim transcript in the question field and typed fallback for permission/support errors.
+- Server-generated conversation IDs require a separate random token on ask/poll. PostgreSQL stores only token hashes. The browser stores its token in per-tab session storage and can restore history after a refresh.
+- Replaced in-memory queues with durable PostgreSQL messages and ID-based polling cursors. Per-conversation transaction locks serialize message writes and reads to prevent cursor skips across concurrent commits.
+- Questions have retry-safe request IDs and stored results. Active duplicate requests return 409; interrupted reservations can be recovered after 120 seconds. A stale process cannot overwrite a newer reservation's result.
+- Staff sign-in uses backend-validated credentials from local environment, constant-time comparison, and a small per-process failed-login limiter. No staff password is embedded in public assets or browser storage. Cross-origin API access is disabled and app pages use a strict content security policy.
+- Staff queue renders untrusted fields as text, preserves drafts during polling, shows loading/empty/error states, and verifies reply responses before showing success.
+- Staff replies use the ticket's stored conversation, save author/timestamp/message and ticket resolution atomically, and safely replay an identical retry. Another reply to an already resolved ticket is rejected. Legacy tickets without a secure conversation are shown as not deliverable.
+- Offline role setup now grants only the required conversation/message/request privileges and generates a local staff password. Reapply schema and rerun setup before restarting.
+
+Python/JavaScript syntax and whitespace checks passed for this sprint. Application, browser, persistence, permission, concurrency, and Groq tests remain deferred by user instruction. No Groq requests were made. Completed implementation does not imply verified acceptance criteria.
+
 ## Next actions
 
-1. Sprint 3: add typed chat, authenticated staff endpoints, authorized conversations, safe staff rendering, robust polling, and voice sending fixes.
-2. Sprint 3: persist replies in PostgreSQL if this stays within the time box; retain a single process for the demo.
-3. Final testing: verify structured Groq output/model support using the designated test key, citation validation, category fallback, threshold, graph outage, storage failure, retry deduplication, protected-data boundaries, and actual PostgreSQL role grants. External model testing is still deferred; prior automatic approval review required explicit permission to send sample context/questions to Groq.
-4. Sprint 4: verify actual cloud credentials/deployment route and package the submission.
+1. Sprint 4: package cloud startup, verify the actual deployment route and configuration, run the final focused verification pass, and prepare submission artifacts.
+2. Final checks must cover both students' isolation, staff authentication, message/reply persistence across restarts, duplicate asks/replies, failed storage, graph outage, citations, protected-data exclusion, request timeouts, and browser voice/text fallback.
+3. Use the designated developer/test key for approved Groq calls; previous automatic approval review required explicit permission to send sample context/questions to Groq. No live provider test has been performed.
+4. The public-policy threshold remains provisional; calibrate it using labeled questions during final testing. Keep demo sample policies labeled and document the shared staff identity and graph-privilege limitation.
 
 ## Startup and demo path
 
@@ -70,7 +84,7 @@ docker compose up -d
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-The Sprint 1 preview used port 8001 because port 8000 was occupied and returned HTTP 200. It does not verify Sprint 2; restart only after the updated schema and role setup are applied.
+The Sprint 1 preview used port 8001 because port 8000 was occupied and returned HTTP 200. It does not verify Sprint 2 or Sprint 3; restart only after the updated schema and role setup are applied.
 
 Student: http://localhost:8001/ — staff: http://localhost:8001/staff — health: http://localhost:8001/health.
 

@@ -47,3 +47,39 @@ CREATE OR REPLACE VIEW public_policies WITH (security_barrier = true) AS
 -- After applying this schema, run python scripts/configure_runtime.py offline
 -- to create a dedicated login that reads public_policies and manages tickets.
 -- It receives no direct access to policies and cannot edit the rulebook.
+
+
+-- Sprint 3: tokens are stored as hashes; messages and request responses survive restarts.
+CREATE TABLE IF NOT EXISTS conversations (
+    session_id TEXT PRIMARY KEY,
+    token_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS chat_requests (
+    session_id TEXT NOT NULL REFERENCES conversations(session_id),
+    request_id TEXT NOT NULL,
+    query TEXT NOT NULL,
+    claim TEXT NOT NULL,
+    response JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (session_id, request_id)
+);
+
+CREATE TABLE IF NOT EXISTS conversation_messages (
+    id BIGSERIAL PRIMARY KEY,
+    session_id TEXT NOT NULL REFERENCES conversations(session_id),
+    sender TEXT NOT NULL CHECK (sender IN ('student', 'agent', 'staff')),
+    text TEXT NOT NULL,
+    request_id TEXT,
+    escalation_id INTEGER REFERENCES escalations(id),
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS conversation_message_cursor_idx
+    ON conversation_messages(session_id, id);
+CREATE UNIQUE INDEX IF NOT EXISTS conversation_message_request_idx
+    ON conversation_messages(session_id, request_id, sender) WHERE request_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS one_staff_reply_per_ticket_idx
+    ON conversation_messages(escalation_id) WHERE sender = 'staff';

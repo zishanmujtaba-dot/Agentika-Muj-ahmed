@@ -80,31 +80,33 @@ The first ingestion downloads an embedding model. These scripts use local embedd
 
 ## 4 Run and test
 
+After pulling a new sprint into an existing checkout, reapply `database/schema.sql` and run `python scripts/configure_runtime.py` before restarting the backend. This creates the conversation tables, refreshes runtime grants, and generates a local staff password if missing. It does not send model requests.
+
 ```sh
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
 
-If port 8000 is occupied, use `--port 8001` and change the browser URLs accordingly. Keep one backend process because staff replies currently live in its memory.
+If port 8000 is occupied, use `--port 8001` and change the browser URLs accordingly.
 
-- Student voice page: http://localhost:8000/
-- Staff queue: http://localhost:8000/staff
-- Interactive API testing: http://localhost:8000/docs
+- Student text/voice page: http://localhost:8000/
+- Staff sign-in and queue: http://localhost:8000/staff
+- Interactive API schema: http://localhost:8000/docs
 - Liveness check: http://localhost:8000/health
 
-The current student page is voice-only. For typed testing, open `/docs`, expand `POST /ask`, choose **Try it out**, and submit:
+Open the student page and ask `What is the minimum attendance requirement?`. This sends your question and retrieved public sample-policy context to Groq using your configured key. Then ask an unrelated question such as `How do I bake a chocolate cake?`, or explicitly ask to talk to staff.
 
-```json
-{"query":"What is the minimum attendance requirement?","session_id":"partner-demo"}
-```
+Open `/staff` in another tab. Read `STAFF_USERNAME` and `STAFF_PASSWORD` from your own local `.env` in your editor, sign in, and reply to the resulting ticket. Staff credentials are not included in Git or prefilled in the page. A successful save resolves the ticket and adds the reply to the correct student's conversation. Refresh the student tab to check history recovery. Keep that tab's private session storage: starting a new conversation or clearing browser storage discards the browser's access token for the previous conversation.
 
-This sends the question and retrieved public sample-policy context to Groq using your configured key. Inspect `answer`, `sources`, and `needs_human`. The attendance policy should be retrieved; actual generated answer quality and model availability are not yet verified.
+For a voice demo, click Start voice, speak, and click Stop and send. Text input always remains available. Speech recognition and synthesis depend on browser support and permissions; speech recognition may use the browser vendor's service. Audio output is opt-in.
 
-Next submit an unrelated question such as `How do I bake a chocolate cake?`, keeping `session_id` as `partner-demo`. The local retrieval baseline produced an escalation for this question. Open `/staff` to find the ticket and send a reply. In `/docs`, use `GET /poll/{session_id}` with `partner-demo` and `since=0` to confirm the reply appears. A separate student browser page has its own generated session ID, so replies to the API-test session will not appear in that unrelated browser tab.
+## API access changes in Sprint 3
 
-For a voice demo, ask through the student page in a browser supporting speech recognition, then reply to that page's ticket from `/staff`. Browser support and microphone permissions vary.
+Clients must first call `POST /sessions` and retain `session_id` and `session_token`. Send the token as `X-Conversation-Token` on `POST /ask` and `GET /poll/{session_id}`. Use a fresh UUID `request_id` for each new question and reuse it when retrying that same question. Responses to completed requests are replayed rather than invoking the model again. Processing requests return 409 with Retry-After; a reservation interrupted by a crash can be reclaimed after 120 seconds.
 
-## What is verified and what to report
+Polling uses a durable message-ID cursor, not a message count: send `since=0` for history, then the returned `cursor`; fetch another batch while `has_more` is true. Staff endpoints require HTTP Basic credentials. Staff replies only accept `text`; the backend determines the target conversation from the ticket. Legacy tickets predating private conversations cannot be delivered to a new tab and are marked accordingly.
 
-Local checks passed for imports/startup, public-policy retrieval, graph connectivity, ticket creation, and staff reply delivery. Model generation was stubbed in those checks. Please report the Groq model used, whether the known answer cites the correct policy, whether the unknown question escalates, and any exact error message with secrets removed.
+## Verification status
 
-Remaining limitations: the stricter retrieval threshold is provisional; staff endpoints are unauthenticated, session IDs are client-supplied, Neo4j still uses the configured administrative account, student input is voice-only, and live replies are lost on backend restart. Sprint 2 behavior needs final runtime verification. Keep this baseline on localhost; public deployment hardening belongs to later sprints. Sample policies are demo fixtures, not verified official university rules.
+Sprint 1 local checks passed for startup, retrieval, graph connectivity, ticket creation, and in-memory reply delivery with model output stubbed. Sprint 2 and Sprint 3 runtime/model/browser checks are deferred to final testing. No live Groq answer-quality result has been verified. Please report the Groq model used, known-question citations, unknown-question escalation, correct-session staff reply, and any error with secrets removed.
+
+Keep a single backend process for the initial demo. PostgreSQL now stores conversations, messages, ticket replies, and completed request results; staff sign-in failure throttling is still per process. Neo4j still uses the configured graph credentials, the relevance threshold is provisional, there is one shared staff identity, and no production retention policy has been implemented. Use HTTPS before sending staff credentials outside localhost. The supplied policies remain demo fixtures.

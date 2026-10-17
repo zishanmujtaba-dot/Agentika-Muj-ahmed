@@ -61,15 +61,24 @@ def main():
                 cur.execute(sql.SQL("GRANT USAGE ON SCHEMA public TO {}").format(role))
                 cur.execute(sql.SQL("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM {}").format(role))
                 cur.execute(sql.SQL("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM {}").format(role))
+                cur.execute(sql.SQL("GRANT SELECT, INSERT ON conversations, conversation_messages TO {}").format(role))
+                cur.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE ON chat_requests TO {}").format(role))
+                cur.execute(sql.SQL("GRANT USAGE, SELECT ON SEQUENCE conversation_messages_id_seq TO {}").format(role))
                 cur.execute(sql.SQL("GRANT SELECT ON public_policies TO {}").format(role))
                 cur.execute(sql.SQL("GRANT SELECT, INSERT, UPDATE ON escalations TO {}").format(role))
                 cur.execute(sql.SQL("GRANT USAGE, SELECT ON SEQUENCE escalations_id_seq TO {}").format(role))
         set_key(str(env_path), "PG_READONLY_USER", runtime)
         set_key(str(env_path), "PG_READONLY_PASSWORD", password)
+        staff_password = os.environ.get("STAFF_PASSWORD", "")
+        if not staff_password or staff_password == "set_by_configure_runtime":
+            staff_password = secrets.token_urlsafe(24)
+        set_key(str(env_path), "STAFF_USERNAME", os.environ.get("STAFF_USERNAME", "staff"))
+        set_key(str(env_path), "STAFF_PASSWORD", staff_password)
         env_path.chmod(0o600)
     finally:
         conn.close()
     print("Restricted PostgreSQL runtime role configured; credentials saved to .env. Restart the backend.")
+    print("Staff sign-in credentials are in .env (STAFF_USERNAME / STAFF_PASSWORD); no secrets displayed.")
     print("Graph credentials are unchanged; Neo4j query read mode is not a database privilege boundary.")
 
 
