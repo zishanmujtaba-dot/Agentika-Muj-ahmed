@@ -40,6 +40,10 @@ The expanded [student rulebook](docs/reference/student-rulebook.md) contains 41 
 
 See [Docker runbook](docs/docker-demo.md) for the demo script, logs, updates, stopping, and recovery. [Partner setup](docs/partner-setup.md) includes the optional host-Python workflow and API access details. [Verification](docs/verification.md) distinguishes actual checks from model-stubbed checks and remaining manual items.
 
+## LangSmith observability
+
+LangSmith tracing is enabled by default when `LANGSMITH_API_KEY` is configured. Set the key in your ignored `.env`, with `LANGSMITH_PROJECT=echo-helpdesk`; rebuild/recreate the app to apply it. Only aggregate stage timings, result counts and routing outcomes are exported. See [LangSmith setup](docs/langsmith.md) for the trace hierarchy, privacy scope and verification status. No LangChain or LangGraph dependency is required.
+
 ## Layout
 
 ```text

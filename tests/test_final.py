@@ -13,6 +13,7 @@ from unittest.mock import patch
 from concurrent.futures import ThreadPoolExecutor
 
 os.environ['GROQ_API_KEY'] = ''
+os.environ['LANGSMITH_TRACING'] = 'false'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 os.environ['STAFF_USERNAME'] = 'staff'

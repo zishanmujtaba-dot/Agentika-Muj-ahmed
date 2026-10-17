@@ -15,6 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import conversations, rag_pipeline
+from .observability import flush_traces
 
 logger = logging.getLogger(__name__)
 app = FastAPI(title="ECHO helpdesk")
@@ -122,6 +123,7 @@ def startup():
 @app.on_event("shutdown")
 def shutdown():
     rag_pipeline.close_pipeline()
+    flush_traces()
 
 
 @app.get("/health")

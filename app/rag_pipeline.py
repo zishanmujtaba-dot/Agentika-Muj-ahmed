@@ -19,6 +19,8 @@ from neo4j import GraphDatabase, Query
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
+from .observability import observed, answer_summary, retrieval_summary
+
 ROOT_DIR = Path(__file__).resolve().parents[1]
 load_dotenv(ROOT_DIR / ".env")
 
@@ -99,6 +101,8 @@ def db_connection():
         pool_.putconn(conn, close=bool(conn.closed))
 
 
+@observed("Groq grounded answer", run_type="llm",
+          summarize=lambda value: {"provider_failed": value.startswith(LLM_FAILURE_MARKER)})
 def call_llm(prompt, max_tokens=1024):
     """One bounded Groq call; never expose provider exceptions or keys to students."""
     global client_groq
@@ -142,6 +146,7 @@ def is_llm_failure(text):
     return not isinstance(text, str) or text.startswith(LLM_FAILURE_MARKER)
 
 
+@observed("Local intent detection", summarize=lambda value: {"category": value["category"]})
 def parse_query_intent(query):
     """Local hints avoid paying for a second model call on every question."""
     patterns = {
@@ -155,6 +160,7 @@ def parse_query_intent(query):
             "semantic_query": query}
 
 
+@observed("Public policy retrieval", run_type="retriever", summarize=retrieval_summary)
 def retrieve_policies(intent):
     """Search only the public-policy view; fixed SQL and parameterized user values."""
     embed_model, _, _ = init_pipeline()
@@ -190,6 +196,9 @@ def retrieve_policies(intent):
     ]
 
 
+@observed("Neo4j routing and expansion", run_type="tool",
+          summarize=lambda value: {"related_count": len(value["related_policies"]),
+                                   "department_found": bool(value["department"])})
 def graph_lookup(policy_source_ids):
     """Read-only Neo4j lookup. For the policies pgvector already found, pulls (a) any other
     policies related to them, and (b) which department each escalates to. This is expansion
@@ -325,6 +334,7 @@ def related_public_policies(ids):
                     for row in cur.fetchall()]
 
 
+@observed("Human handoff", run_type="tool", summarize=answer_summary)
 def escalate(query, session_id, reason, department=None):
     department = department or DEFAULT_ESCALATION_DEPARTMENT
     try:
@@ -347,6 +357,7 @@ def escalate(query, session_id, reason, department=None):
     }
 
 
+@observed("Citation validation", summarize=lambda value: {"citation_count": len(value[1])})
 def validate_answer(raw, policies):
     """Reject refusals/malformed output and require real, quoted public sources.
 
@@ -402,6 +413,7 @@ def followup_intent(query, previous_question=None):
     return intent
 
 
+@observed("ECHO question", summarize=answer_summary)
 def answer_query(query, session_id=None, previous_question=None):
     """Answer only from public evidence, otherwise persist an explicit handoff."""
     query = query.strip()

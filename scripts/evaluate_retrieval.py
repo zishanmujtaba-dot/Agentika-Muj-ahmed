@@ -7,6 +7,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 os.environ['GROQ_API_KEY'] = ''
+os.environ['LANGSMITH_TRACING'] = 'false'
 os.environ['HF_HUB_OFFLINE'] = '1'
 os.environ['TRANSFORMERS_OFFLINE'] = '1'
 from app import rag_pipeline as rag
