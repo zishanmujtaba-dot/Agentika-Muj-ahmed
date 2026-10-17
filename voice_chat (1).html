@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ECHO - Voice Chat (dev test page)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 20px; }
+  #talkBtn {
+    width: 100%; padding: 20px; font-size: 18px; border-radius: 12px;
+    border: none; cursor: pointer; background: #2563eb; color: white;
+  }
+  #talkBtn.listening { background: #dc2626; }
+  #talkBtn:disabled { background: #9ca3af; cursor: not-allowed; }
+  #status { margin: 12px 0; color: #555; min-height: 20px; }
+  #transcript, #answer {
+    margin-top: 16px; padding: 14px; border-radius: 8px; background: #f3f4f6; min-height: 24px;
+  }
+  label { display: block; margin-top: 8px; font-size: 13px; color: #777; }
+</style>
+</head>
+<body>
+
+<h2>ECHO voice test</h2>
+<p>Click once to start listening, click again when you're done talking to send. No server-side STT/TTS needed - the browser does both.</p>
+
+<button id="talkBtn">Click to talk</button>
+<div id="status">Idle</div>
+
+<label>You said:</label>
+<div id="transcript">-</div>
+
+<label>ECHO answered:</label>
+<div id="answer">-</div>
+
+<script>
+// ---- CONFIG ----
+const BACKEND_URL = "http://localhost:8000/ask";
+const POLL_URL = "http://localhost:8000/poll";
+// One session ID per page load - this is what lets a staff member's reply find its way back
+// to this exact browser tab, via the poll queue on the backend.
+const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());
+let messagesSeen = 0;
+// ---------------------------------------------------------------
+
+const talkBtn = document.getElementById("talkBtn");
+const statusEl = document.getElementById("status");
+const transcriptEl = document.getElementById("transcript");
+const answerEl = document.getElementById("answer");
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+if (!SpeechRecognition) {
+  statusEl.textContent = "Speech recognition not supported in this browser. Use Chrome or Edge.";
+  talkBtn.disabled = true;
+}
+
+const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+if (recognition) {
+  recognition.lang = "en-US";
+  recognition.interimResults = true;    // show live text while held, so you can see it's hearing you
+  recognition.continuous = true;        // keep listening for as long as the button is held down
+  recognition.maxAlternatives = 1;
+}
+
+let listening = false;
+let heldTranscript = "";
+let releasedWhileListening = false;   // true once user lets go, so we know to send on next final result
+
+function startListening() {
+  if (!recognition || listening) return;
+  listening = true;
+  releasedWhileListening = false;
+  heldTranscript = "";
+  talkBtn.classList.add("listening");
+  talkBtn.textContent = "Listening... click to stop";
+  statusEl.textContent = "Listening for your question";
+  try {
+    recognition.start();
+  } catch (e) {
+    // start() throws if called again before the previous session fully closed - ignore, harmless
+  }
+}
+
+function stopListening() {
+  if (!recognition || !listening) return;
+  releasedWhileListening = true;
+  recognition.stop();   // triggers a final 'result' event with everything heard, then 'end'
+}
+
+// Toggle instead of hold: click once to start, click again to stop and send.
+// Holding a mouse/trackpad button steady while leaning in to talk is awkward and easy to
+// release early by accident - a toggle removes that failure mode entirely.
+talkBtn.addEventListener("click", () => {
+  if (listening) {
+    stopListening();
+  } else {
+    startListening();
+  }
+});
+
+recognition && recognition.addEventListener("result", async (event) => {
+  // interimResults=true means this fires repeatedly while held - keep the latest full transcript
+  let combined = "";
+  for (let i = 0; i < event.results.length; i++) {
+    combined += event.results[i][0].transcript;
+  }
+  heldTranscript = combined;
+  transcriptEl.textContent = heldTranscript + (releasedWhileListening ? "" : " ...");
+
+  if (releasedWhileListening) {
+    statusEl.textContent = "Thinking...";
+    await askBackend(heldTranscript.trim());
+  }
+});
+
+recognition && recognition.addEventListener("end", () => {
+  listening = false;
+  talkBtn.classList.remove("listening");
+  talkBtn.textContent = "Click to talk";
+  if (releasedWhileListening && !heldTranscript.trim()) {
+    statusEl.textContent = "Didn't catch anything - try holding a bit longer";
+  }
+});
+
+recognition && recognition.addEventListener("error", (event) => {
+  listening = false;
+  talkBtn.classList.remove("listening");
+  talkBtn.textContent = "Click to talk";
+  if (event.error !== "no-speech") {
+    statusEl.textContent = "Mic error: " + event.error + " (try again)";
+  }
+});
+
+async function askBackend(question) {
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: question, session_id: SESSION_ID }),
+    });
+    if (!res.ok) throw new Error("Backend returned " + res.status);
+    const data = await res.json();
+    const answer = data.answer || "(no answer field in response)";
+    answerEl.textContent = answer;
+    messagesSeen++; // the backend already recorded this answer in the poll queue - don't re-show it
+    if (data.needs_human) {
+      statusEl.textContent = "Flagged for staff follow-up (" + (data.department || "Helpdesk") + ") - speaking answer";
+    } else {
+      statusEl.textContent = "Speaking answer";
+    }
+    speak(answer);
+  } catch (err) {
+    answerEl.textContent = "Error reaching backend: " + err.message;
+    statusEl.textContent = "Error - check backend is running";
+  }
+}
+
+async function pollForStaffReplies() {
+  try {
+    const res = await fetch(`${POLL_URL}/${SESSION_ID}?since=${messagesSeen}`);
+    const data = await res.json();
+    for (const msg of data.messages) {
+      messagesSeen++;
+      if (msg.from === "staff") {
+        answerEl.textContent = "[Staff] " + msg.text;
+        statusEl.textContent = "A staff member replied";
+        speak(msg.text);
+      }
+    }
+  } catch (err) {
+    // silent - polling failure shouldn't interrupt the page, just try again next interval
+  }
+}
+
+setInterval(pollForStaffReplies, 3000);
+
+function speak(text) {
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.onend = () => { statusEl.textContent = "Idle"; };
+  speechSynthesis.cancel(); // stop any previous speech before starting new
+  speechSynthesis.speak(utterance);
+}
+</script>
+
+</body>
+</html>

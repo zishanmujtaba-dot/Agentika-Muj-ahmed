@@ -1,0 +1,50 @@
+[
+  {
+    "source_id": "fee-deadline-001",
+    "category": "fees",
+    "title": "Semester Fee Payment Deadline",
+    "text": "Tuition fees for each semester must be paid by the 15th of the first month of the semester. A late fee of PKR 2,000 applies for payments made within 7 days after the deadline. Students who have not paid within 14 days after the deadline will have their course registration cancelled automatically.",
+    "access_level": "public",
+    "tags": ["fees", "deadline", "late payment"]
+  },
+  {
+    "source_id": "registration-late-001",
+    "category": "registration",
+    "title": "Late Course Registration Policy",
+    "text": "Students may register for courses up to 5 working days after the official registration period closes, subject to a late registration fee of PKR 1,500. After this grace period, course registration requires written approval from the Head of Department.",
+    "access_level": "public",
+    "tags": ["registration", "late", "approval"]
+  },
+  {
+    "source_id": "attendance-001",
+    "category": "attendance",
+    "title": "Minimum Attendance Requirement",
+    "text": "Students must maintain at least 80% attendance in each course to be eligible to sit the final examination. Students falling below this threshold may request an attendance waiver from the course instructor only in documented medical or emergency cases.",
+    "access_level": "public",
+    "tags": ["attendance", "eligibility", "exam"]
+  },
+  {
+    "source_id": "course-withdrawal-001",
+    "category": "courses",
+    "title": "Course Withdrawal Policy",
+    "text": "Students may withdraw from a course without academic penalty up to the end of week 6 of the semester. Withdrawals after week 6 but before week 12 will be recorded as 'W' on the transcript. Withdrawals are not permitted after week 12.",
+    "access_level": "public",
+    "tags": ["withdrawal", "transcript", "deadline"]
+  },
+  {
+    "source_id": "general-helpdesk-001",
+    "category": "general",
+    "title": "Helpdesk Operating Hours",
+    "text": "The student helpdesk is open Monday to Friday, 9:00 AM to 4:00 PM, excluding public holidays. Outside these hours, students can submit queries through the online portal for a response within 1 business day.",
+    "access_level": "public",
+    "tags": ["helpdesk", "hours", "contact"]
+  },
+  {
+    "source_id": "disciplinary-record-001",
+    "category": "general",
+    "title": "Student Disciplinary Records Access",
+    "text": "Individual student disciplinary case details, including complaint history and committee decisions, are confidential and accessible only to the Discipline Committee and the Head of Department through the internal records system.",
+    "access_level": "protected",
+    "tags": ["disciplinary", "confidential", "records"]
+  }
+]
