@@ -7,10 +7,10 @@
 </head>
 <body>
   <main class="shell staff-shell">
-    <header class="topbar"><a class="brand" href="/">ECHO<span>Staff workspace</span></a><a href="/">Student helpdesk ↗</a></header>
-    <section class="intro"><span class="eyebrow">HUMAN SUPPORT</span><h1>Step in where<br>judgment matters.</h1><p>Review routed questions and send a reply directly to the student’s conversation.</p></section>
-    <section id="loginPanel" class="panel"><h2>Staff sign in</h2><p>Use the staff credentials configured by your team.</p><form id="loginForm"><label for="username">Username</label><input id="username" name="username" autocomplete="username" value="staff" maxlength="128" required><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="512" required><button id="loginBtn" type="submit">Sign in</button></form></section>
-    <section id="queuePanel" class="panel" hidden><div class="queue-heading"><h2>Pending questions <span id="ticketCount" class="count">0</span></h2><button id="logoutBtn" class="secondary" type="button">Sign out</button></div><p class="muted">Replies are saved before tickets are resolved. The student can see them when they return to this conversation.</p><p id="emptyQueue" class="empty" hidden>No pending questions. You’re all caught up.</p><div id="ticketList"></div></section>
+    <header class="topbar"><a class="brand" href="/" aria-label="ECHO home">ECHO<span>FAST NUCES</span></a><nav aria-label="Workspace"><a href="/">Student helpdesk</a><a href="/staff" aria-current="page">Staff access</a></nav></header>
+    <section class="intro"><div><h1>Staff workspace</h1><p>Review questions and reply to students.</p></div><span class="edition">Helpdesk</span></section>
+    <section id="loginPanel" class="panel login-panel"><h2>Staff sign in</h2><p>Enter your staff username and password.</p><form id="loginForm"><label for="username">Username</label><input id="username" name="username" autocomplete="username" value="staff" maxlength="128" required><label for="password">Password</label><input id="password" name="password" type="password" autocomplete="current-password" maxlength="512" required><button id="loginBtn" type="submit">Sign in</button></form></section>
+    <section id="queuePanel" class="panel queue-panel" hidden><div class="queue-heading"><h2>Pending questions <span id="ticketCount" class="count">0</span></h2><button id="logoutBtn" class="secondary" type="button">Sign out</button></div><p class="queue-description">Your reply appears with the student's original question in their conversation.</p><p id="emptyQueue" class="empty" hidden>No pending questions.</p><div id="ticketList"></div></section>
     <p id="staffStatus" role="status">Sign in to view the queue.</p>
   </main>
 </body>

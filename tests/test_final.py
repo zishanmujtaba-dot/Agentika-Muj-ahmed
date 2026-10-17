@@ -22,6 +22,8 @@ import psycopg2
 from fastapi.testclient import TestClient
 from app.main import app
 from app import rag_pipeline as rag
+from app import conversations
+from psycopg2.extras import Json
 
 
 class FinalIntegration(unittest.TestCase):
@@ -107,10 +109,26 @@ class FinalIntegration(unittest.TestCase):
         self.assertEqual(self.client.post(path,auth=self.auth,json={'text':'Different reply'}).status_code,409)
         messages=self.poll(a).json(); self.assertEqual(len(messages['messages']),3)
         self.assertEqual(messages['messages'][-1]['text'],'Your staff reply.')
+        self.assertEqual(messages['messages'][-1]['reply_to']['question'],'How do I bake a chocolate cake?')
         self.assertEqual(self.poll(b).json()['messages'],[])
         self.assertEqual(self.poll(a,messages['cursor']).json()['messages'],[])
         rag.close_pipeline()
         self.assertEqual(self.poll(a).json()['messages'][-1]['text'],'Your staff reply.')
+
+    def test_reply_context_tracks_original_question_and_legacy_messages(self):
+        session=self.session()
+        original='I want to speak to a staff member.\nPlease explain <example> in full.'
+        ticket=self.ask(session,original).json()['ticket_id']
+        self.ask(session,'Who won the football World Cup in 2018?')
+        # Simulate an older saved reply without a question snapshot. Poll must recover
+        # its exact question from the linked ticket, not the latest student message.
+        with patch.object(conversations,'Json',side_effect=lambda value:Json({k:v for k,v in value.items() if k!='question'})):
+            response=self.client.post(f'/escalations/{ticket}/reply',auth=self.auth,json={'text':'Here is the staff response.'})
+        self.assertEqual(response.status_code,200,response.text)
+        reply=self.poll(session).json()['messages'][-1]
+        self.assertEqual(reply['from'],'staff')
+        self.assertEqual(reply['reply_to']['question'],original)
+        self.assertNotIn('question',reply['metadata'])
 
     def test_conversation_tokens_and_input_validation(self):
         a,b=self.session(),self.session()

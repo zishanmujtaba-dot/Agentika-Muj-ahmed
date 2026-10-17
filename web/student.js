@@ -38,15 +38,15 @@ async function api(url, options = {}, timeout = 45000) {
 }
 function tokenHeaders() { return { "X-Conversation-Token": session.session_token }; }
 function updateControls() {
-  sendBtn.disabled = busy || !ready || listening;
-  talkBtn.disabled = busy || !ready || !recognition;
+  sendBtn.disabled = busy || !ready || Boolean(voice?.stopping);
+  talkBtn.disabled = busy || !ready || !voice || voice.stopping;
   newBtn.disabled = busy || listening;
   question.readOnly = busy || listening;
-  sendBtn.textContent = busy ? "Sending…" : (pending ? "Retry question ↗" : "Send question ↗");
+  sendBtn.textContent = busy ? "Sending…" : voice?.stopping ? "Finishing voice…" : listening ? "Finish and send" : pending ? "Retry question" : "Send question";
   document.querySelectorAll("[data-question]").forEach(button => { button.disabled = busy || listening; });
 }
 function speak(text) {
-  if (!speechEnabled.checked || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  if (listening || !speechEnabled.checked || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
   speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(text));
 }
 document.getElementById("stopSpeech").addEventListener("click", () => window.speechSynthesis?.cancel());
@@ -60,15 +60,24 @@ function renderMessage(message, announce = false) {
   bubble.className = `message ${kind}`;
   const label = document.createElement("span"); label.className = "message-label";
   label.textContent = kind === "student" ? "You" : kind === "staff" ? "Staff reply" : "ECHO";
-  const body = document.createElement("p"); body.textContent = message.text;
-  bubble.append(label, body);
-  const meta = document.createElement("div"); meta.className = "message-meta";
+  bubble.append(label);
   const detail = message.metadata || {};
+  const originalQuestion = message.reply_to?.question || detail.question;
+  if (kind === "staff" && originalQuestion) {
+    const context = document.createElement("div"); context.className = "reply-context";
+    const caption = document.createElement("span"); caption.textContent = "In reply to your question";
+    const quote = document.createElement("blockquote"); quote.textContent = originalQuestion;
+    context.append(caption, quote); bubble.append(context);
+  }
+  const body = document.createElement("p"); body.textContent = message.text;
+  bubble.append(body);
+  const meta = document.createElement("div"); meta.className = "message-meta";
   const time = new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  meta.textContent = detail.ticket_id ? `${time} · Ticket #${detail.ticket_id}` : time;
+  meta.textContent = time;
   if (detail.status === "unavailable") meta.textContent += " · Follow-up was not saved";
   bubble.append(meta); messages.append(bubble); messages.scrollTop = messages.scrollHeight;
   if (announce && kind !== "student") speak(message.text);
+  if (announce && kind === "staff" && !busy) statusEl.textContent = "A staff reply has arrived.";
 }
 
 function syncMessages() {
@@ -113,7 +122,7 @@ async function initialize(fresh = false) {
   generation++; const epoch = generation; clearTimeout(pollTimer); session = null; ready = false; pollPromise = null;
   shown.clear(); cursor = 0; messages.replaceChildren();
   const empty = document.createElement("p"); empty.id = "emptyChat"; empty.className = "empty";
-  empty.textContent = "Your questions and staff replies will appear here."; messages.append(empty);
+  empty.textContent = "Ask a question to get started."; messages.append(empty);
   if (fresh) { forget(SESSION_KEY); forget(PENDING_KEY); pending = null; question.value = ""; window.speechSynthesis?.cancel(); }
   updateControls(); statusEl.textContent = "Connecting to your conversation…";
   try {
@@ -126,7 +135,7 @@ async function initialize(fresh = false) {
     if (pending?.query && pending?.request_id) question.value = pending.query;
     else pending = null;
     ready = true; updateControls();
-    statusEl.textContent = pending ? "Your last question can be retried safely." : "Ready. Type a question or use voice.";
+    statusEl.textContent = pending ? "Your last question can be retried safely." : "Ready for your question.";
     pollLoop(generation);
   } catch { if (epoch !== generation) return; ready = false; updateControls(); statusEl.textContent = "Could not connect. Check the server, then choose New conversation to retry."; }
 }
@@ -137,8 +146,9 @@ document.querySelectorAll("[data-question]").forEach(button => button.addEventLi
 
 async function sendQuestion(event) {
   event?.preventDefault();
+  if (listening) { voice?.stop(true); return; }
   const query = question.value.trim();
-  if (!query || busy || !ready || listening) return;
+  if (!query || busy || !ready) return;
   if (!pending || pending.query !== query) pending = { query, request_id: requestId() };
   store(PENDING_KEY, pending); busy = true; updateControls();
   statusEl.textContent = "Checking the policy rulebook…";
@@ -159,43 +169,51 @@ async function sendQuestion(event) {
   } finally { busy = false; updateControls(); question.focus(); }
 }
 form.addEventListener("submit", sendQuestion);
+// Stop recognition even if the required textarea is still empty/interim; wait
+// for the native final result before submitting the question.
+sendBtn.addEventListener("click", event => {
+  if (listening) { event.preventDefault(); voice?.stop(true); }
+});
 question.addEventListener("keydown", event => {
-  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) { event.preventDefault(); form.requestSubmit(); }
+  if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    if (listening) voice?.stop(true); else form.requestSubmit();
+  }
 });
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const recognition = SpeechRecognition ? new SpeechRecognition() : null;
-let listening = false, sendOnEnd = false, voiceError = false, voicePrefix = "";
-if (recognition) {
-  recognition.lang = "en-US"; recognition.interimResults = true; recognition.continuous = true;
-  recognition.addEventListener("result", event => {
-    const transcript = [...event.results].map(result => result[0].transcript).join(" ");
-    question.value = `${voicePrefix} ${transcript}`.trim().slice(0, 2000);
-  });
-  recognition.addEventListener("end", () => {
-    const shouldSend = sendOnEnd; listening = false; sendOnEnd = false;
-    talkBtn.classList.remove("listening"); talkBtn.textContent = "Start voice"; updateControls();
-    if (shouldSend && question.value.trim()) sendQuestion();
-    else if (!voiceError && question.value.trim()) statusEl.textContent = "Transcript ready. Review it and Send question.";
-  });
-  recognition.addEventListener("error", event => {
-    voiceError = true; sendOnEnd = false; listening = false;
-    talkBtn.classList.remove("listening"); talkBtn.textContent = "Start voice"; updateControls();
-    statusEl.textContent = event.error === "not-allowed" ? "Microphone access was denied. You can type your question."
-      : "Voice input stopped. You can review the transcript or type instead.";
-  });
-} else document.getElementById("voiceNote").textContent = "Speech recognition is unavailable in this browser. Text chat is fully available.";
+let listening = false;
+const voice = SpeechRecognition ? new EchoVoiceInput({
+  Recognition: SpeechRecognition,
+  onText: text => { question.value = text; },
+  onState: active => {
+    listening = active;
+    talkBtn.classList.toggle("listening", active);
+    talkBtn.textContent = active ? "Finish and send" : "Use voice";
+    updateControls();
+  },
+  onEnd: ({ text, send, error }) => {
+    if (error) return; // The error callback preserves the draft and explains recovery.
+    question.value = text;
+    if (send && text.trim()) sendQuestion();
+    else statusEl.textContent = text.trim() ? "Transcript ready. Review it and send your question." : "No speech captured. Try again or type your question.";
+  },
+  onError: error => {
+    statusEl.textContent = error === "not-allowed" || error === "service-not-allowed"
+      ? "Microphone access was denied. You can type your question."
+      : error === "stop-timeout" ? "Voice input did not finish. Review the text, then send it yourself."
+      : "Voice input stopped. Review the text or type your question.";
+  },
+}) : null;
+if (!voice) document.getElementById("voiceNote").textContent = "Speech recognition is unavailable in this browser. Text chat is fully available.";
+else document.getElementById("voiceNote").textContent = "Voice captures one utterance at a time. Pause to review, or choose Finish and send.";
 talkBtn.addEventListener("click", () => {
-  if (!recognition || busy || !ready) return;
-  if (listening) { sendOnEnd = true; recognition.stop(); return; }
-  window.speechSynthesis?.cancel(); voicePrefix = question.value.trim(); sendOnEnd = false; voiceError = false;
-  try {
-    recognition.start(); listening = true; talkBtn.classList.add("listening");
-    talkBtn.textContent = "Stop and send"; statusEl.textContent = "Listening… click Stop and send when finished.";
-  } catch { listening = false; statusEl.textContent = "Microphone could not start. You can type instead."; }
-  updateControls();
+  if (!voice || busy || !ready || voice.stopping) return;
+  if (listening) { voice.stop(true); return; }
+  window.speechSynthesis?.cancel();
+  if (voice.start(question.value)) statusEl.textContent = "Listening… pause to review, or choose Finish and send.";
 });
-window.addEventListener("pagehide", () => { sendOnEnd = false; recognition?.abort(); window.speechSynthesis?.cancel(); clearTimeout(pollTimer); });
+window.addEventListener("pagehide", () => { voice?.cancel(); window.speechSynthesis?.cancel(); clearTimeout(pollTimer); });
 window.addEventListener("pageshow", event => {
   if (event.persisted && session && ready) { clearTimeout(pollTimer); pollLoop(generation); }
 });

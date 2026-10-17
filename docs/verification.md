@@ -33,3 +33,7 @@ python scripts/evaluate_retrieval.py
 Both commands force Groq off in their own process. The integration suite deletes only records it creates. The retrieval check performs no writes. Do not run the integration suite against production databases; use this local demo setup.
 
 For the browser demo without model usage, leave GROQ_API_KEY blank. Explicit human requests go directly to staff. A policy answer with no provider key becomes an escalation, not a fabricated AI answer.
+
+## Reply context and interface update
+
+Staff replies now quote the complete original question, with a ticket lookup fallback for replies saved before this update. Student timestamps no longer require ticket-number tracking. New regression coverage verifies that a reply references its original question even when newer questions exist, and that older metadata recovers the question from the ticket. Twelve integration tests passed with Groq disabled. The student and staff screens were visually reviewed in a separate preview, and the quoted-question handoff was exercised there without model calls.

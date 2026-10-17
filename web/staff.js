@@ -1,4 +1,13 @@
 "use strict";
+const reasonLabels = {
+  no_confident_match: "No matching policy",
+  unsupported_answer: "Model response needs review",
+  human_requested: "Student requested staff",
+  restricted_request: "Private information request",
+  llm_call_failed: "Answer service unavailable",
+  retrieval_failed: "Policy lookup unavailable",
+  processing_failed: "Unable to process question",
+};
 const loginPanel = document.getElementById("loginPanel"), queuePanel = document.getElementById("queuePanel");
 const statusEl = document.getElementById("staffStatus"), list = document.getElementById("ticketList");
 const loginBtn = document.getElementById("loginBtn");
@@ -45,7 +54,7 @@ function ticketNode(ticket) {
   const meta = document.createElement("div"); meta.className = "ticket-meta";
   const badge = document.createElement("span"); badge.className = "badge"; badge.textContent = ticket.department || "Helpdesk";
   const detail = document.createElement("span");
-  detail.textContent = `#${ticket.id} · ${new Date(ticket.created_at).toLocaleString()} · ${(ticket.reason || "follow-up").replaceAll("_", " ")}`;
+  detail.textContent = `#${ticket.id} · ${new Date(ticket.created_at).toLocaleString()} · ${reasonLabels[ticket.reason] || "Staff follow-up"}`;
   meta.append(badge, detail);
   const title = document.createElement("h3"); title.textContent = ticket.student_query;
   article.append(meta, title);
@@ -67,7 +76,7 @@ function ticketNode(ticket) {
       await api(`/escalations/${ticket.id}/reply`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
       if (activeEpoch !== epoch) return;
       article.remove(); nodes.delete(ticket.id);
-      statusEl.textContent = `Reply to ticket #${ticket.id} saved and delivered to the conversation.`;
+      statusEl.textContent = "Reply saved to the student’s conversation.";
       refreshCount(); clearTimeout(timer); poll(epoch);
     } catch (error) {
       if (activeEpoch !== epoch) return;

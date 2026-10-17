@@ -110,13 +110,18 @@ def messages_after(session_id, after=0):
             # alone do not guarantee commit order; the lock prevents cursor skips.
             cur.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 1))", (session_id,))
             cur.execute(
-                """SELECT id, sender, text, created_at, request_id, metadata
-                   FROM conversation_messages WHERE session_id = %s AND id > %s
-                   ORDER BY id LIMIT 100""", (session_id, after),
+                """SELECT m.id, m.sender, m.text, m.created_at, m.request_id, m.metadata,
+                          COALESCE(m.metadata->>'question', e.student_query)
+                   FROM conversation_messages m
+                   LEFT JOIN escalations e ON e.id = m.escalation_id AND e.session_id = m.session_id
+                   WHERE m.session_id = %s AND m.id > %s
+                   ORDER BY m.id LIMIT 100""", (session_id, after),
             )
             rows = cur.fetchall()
     messages = [{"id": r[0], "from": r[1], "text": r[2], "created_at": r[3].isoformat(),
-                 "request_id": r[4], "metadata": r[5]} for r in rows]
+                 "request_id": r[4], "metadata": r[5],
+                 "reply_to": {"question": r[6]} if r[1] == 'staff' and r[6] else None}
+                for r in rows]
     return {"messages": messages, "cursor": rows[-1][0] if rows else after,
             "has_more": len(rows) == 100}
 
@@ -139,12 +144,12 @@ def reply_to_ticket(ticket_id, text, staff_name):
     """Save reply and resolve atomically; retrying the same reply replays success."""
     with db_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT session_id, status FROM escalations WHERE id = %s FOR UPDATE",
+            cur.execute("SELECT session_id, status, student_query, department FROM escalations WHERE id = %s FOR UPDATE",
                         (ticket_id,))
             ticket = cur.fetchone()
             if not ticket:
                 raise TicketMissing()
-            session_id, status = ticket
+            session_id, status, original_question, department = ticket
             cur.execute("SELECT 1 FROM conversations WHERE session_id = %s", (session_id,))
             if not cur.fetchone():
                 raise RequestConflict("Legacy ticket has no recoverable student conversation.")
@@ -162,7 +167,8 @@ def reply_to_ticket(ticket_id, text, staff_name):
                 """INSERT INTO conversation_messages
                    (session_id, sender, text, escalation_id, metadata)
                    VALUES (%s, 'staff', %s, %s, %s) RETURNING id""",
-                (session_id, text, ticket_id, Json({"author": staff_name, "ticket_id": ticket_id})),
+                (session_id, text, ticket_id, Json({"author": staff_name, "ticket_id": ticket_id,
+                                                   "question": original_question, "department": department})),
             )
             message_id = cur.fetchone()[0]
             cur.execute("UPDATE escalations SET status = 'resolved' WHERE id = %s", (ticket_id,))
