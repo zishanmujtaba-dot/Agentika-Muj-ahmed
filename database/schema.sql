@@ -38,19 +38,12 @@ CREATE TABLE IF NOT EXISTS escalations (
 );
 
 
--- ---------------------------------------------------------------------------
--- OPTIONAL but recommended: a read-only role for the chatbot backend.
--- Run this block manually, once, in psql (replace the password). The backend
--- (.env PG_READONLY_USER / PG_READONLY_PASSWORD) can then use this role instead
--- of the admin postgres user, so it is PHYSICALLY unable to write to the table
--- even if something upstream went wrong - not just "shouldn't", but "can't".
--- ---------------------------------------------------------------------------
--- CREATE ROLE echo_readonly WITH LOGIN PASSWORD 'change_me';
--- GRANT CONNECT ON DATABASE postgres TO echo_readonly;
--- GRANT USAGE ON SCHEMA public TO echo_readonly;
--- GRANT SELECT ON policies TO echo_readonly;
---
--- -- This role can log and manage tickets but STILL cannot touch the rulebook - no
--- -- INSERT, UPDATE or DELETE on `policies` at all, ever, under any grant.
--- GRANT SELECT, INSERT, UPDATE ON escalations TO echo_readonly;
--- GRANT USAGE, SELECT ON SEQUENCE escalations_id_seq TO echo_readonly;
+-- Student runtime reads this view, never the base policies table. Applying this
+-- schema is an administrator/ingestion operation, not a server startup action.
+CREATE OR REPLACE VIEW public_policies WITH (security_barrier = true) AS
+    SELECT source_id, category, title, text, tags, embedding
+    FROM policies WHERE access_level = 'public';
+
+-- After applying this schema, run python scripts/configure_runtime.py offline
+-- to create a dedicated login that reads public_policies and manages tickets.
+-- It receives no direct access to policies and cannot edit the rulebook.

@@ -42,9 +42,9 @@ GROQ_API_KEY=your_own_groqcloud_key_here
 GROQ_MODEL=openai/gpt-oss-120b
 ```
 
-Use a GroqCloud key, not an xAI/Grok key. Leave the database values unchanged for the supplied local Compose setup. Do not commit `.env` or paste the key into source code. `git check-ignore .env` should print `.env`.
+Use a GroqCloud key, not an xAI/Grok key. Leave the database values unchanged for the supplied local Compose setup. The runtime setup command below replaces the runtime-password placeholder with a generated local password. Do not commit `.env` or paste the key into source code. `git check-ignore .env` should print `.env`.
 
-If your shell already exports a GROQ_API_KEY, remove that shell variable or set it to your intended key: exported environment values take precedence over `.env`. Restart the backend after changing credentials. All model requests from this checkout will use the key configured in that process.
+If your shell already exports a GROQ_API_KEY, remove that shell variable or set it to your intended key: exported environment values take precedence over `.env`. Restart the backend after changing credentials. All model requests from this checkout will use the key configured in that process. `RETRIEVAL_MAX_DISTANCE` defaults to a provisional 0.60; final evaluation has not calibrated it yet.
 
 ## 3 Start and load the databases
 
@@ -73,9 +73,10 @@ Load the supplied demo data:
 ```sh
 python scripts/insert_policies.py
 python scripts/insert_graph.py
+python scripts/configure_runtime.py
 ```
 
-The first ingestion downloads an embedding model. These scripts use local embeddings, PostgreSQL, and Neo4j; they do not call Groq. Do not run `docker compose down -v` to troubleshoot: it deletes the local database volumes.
+The first ingestion downloads an embedding model. These scripts use local embeddings, PostgreSQL, and Neo4j; they do not call Groq. `configure_runtime.py` creates restricted PostgreSQL credentials and writes them only to your local `.env`. Existing volumes must have the updated schema applied before this command. Do not run `docker compose down -v` to troubleshoot: it deletes the local database volumes.
 
 ## 4 Run and test
 
@@ -106,4 +107,4 @@ For a voice demo, ask through the student page in a browser supporting speech re
 
 Local checks passed for imports/startup, public-policy retrieval, graph connectivity, ticket creation, and staff reply delivery. Model generation was stubbed in those checks. Please report the Groq model used, whether the known answer cites the correct policy, whether the unknown question escalates, and any exact error message with secrets removed.
 
-Known Sprint 1 limitations: broad retrieval matches, unauthenticated staff endpoints, client-supplied session IDs, admin database credentials for local use, voice-only student input, and reply loss on backend restart. Keep this baseline on localhost; public deployment hardening belongs to later sprints. Sample policies are demo fixtures, not verified official university rules.
+Remaining limitations: the stricter retrieval threshold is provisional; staff endpoints are unauthenticated, session IDs are client-supplied, Neo4j still uses the configured administrative account, student input is voice-only, and live replies are lost on backend restart. Sprint 2 behavior needs final runtime verification. Keep this baseline on localhost; public deployment hardening belongs to later sprints. Sample policies are demo fixtures, not verified official university rules.

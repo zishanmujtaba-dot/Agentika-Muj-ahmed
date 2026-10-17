@@ -1,8 +1,8 @@
 """ECHO HTTP API and same-origin student/staff pages.
 
 Run from repository root: uvicorn app.main:app --reload --port 8000
-Offline ingestion lives in scripts/. Runtime policy access is read-only by
-convention until restricted database roles are configured. Ticket creation and
+Offline ingestion and PostgreSQL role setup live in scripts/. Retrieval reads
+the public-only view; configure_runtime.py grants only that view. Ticket creation and
 resolution write to the separate escalations table. Live replies are currently
 in memory; staff authentication is pending Sprint 3.
 """
@@ -11,7 +11,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 from . import rag_pipeline
 
@@ -37,12 +37,14 @@ app.add_middleware(
 
 
 class AskRequest(BaseModel):
-    query: str
-    session_id: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+    query: str = Field(min_length=1, max_length=2000)
+    session_id: str = Field(min_length=1, max_length=128)
 
 
 class StaffReplyRequest(BaseModel):
-    text: str
+    model_config = ConfigDict(str_strip_whitespace=True)
+    text: str = Field(min_length=1, max_length=6000)
 
 
 @app.on_event("startup")
@@ -50,6 +52,11 @@ def startup():
     # Loads the embedding model and opens the DB connection ONCE at process start, not per
     # request - this is what keeps response latency reasonable.
     rag_pipeline.init_pipeline()
+
+
+@app.on_event("shutdown")
+def shutdown():
+    rag_pipeline.close_pipeline()
 
 
 @app.get("/health")

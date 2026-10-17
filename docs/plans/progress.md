@@ -5,7 +5,7 @@
 | Sprint | Status |
 | --- | --- |
 | 1 — Baseline and organization | Complete locally; external answer generation and cloud state unverified |
-| 2 — Backend reliability | Next |
+| 2 — Backend reliability | Implemented; runtime checks deferred to final testing |
 | 3 — Student and staff experience | Pending |
 | 4 — Deployment and submission | Pending |
 
@@ -34,14 +34,32 @@
 
 See ../partner-setup.md for a fresh checkout, local credentials, database loading, and exact model/staff test steps. No live Groq calls were made during preparation of the handoff.
 
-## Next sprint blocker list
+## Sprint 2 implemented
 
-1. Verify actual Groq output once external-data permission is granted; add bounded model/network failures and inspect model support.
-2. Calibrate retrieval threshold and category fallback. The existing pipeline bases escalation only on distance/model failure; a model's textual refusal after a confident match does not itself open a ticket. Explicit human requests need handling.
-3. Make graph lookup failure nonfatal and return a clear default department. Related graph IDs are currently returned as metadata, not expanded policy text.
-4. Repair transaction handling on pooled-connection errors and set dependency timeouts. Runtime PostgreSQL uses demo admin credentials; read-only policy privileges are optional commented SQL, not enforced. Neo4j also uses admin credentials.
-5. Add text input, backend-validated staff authentication, conversation authorization, safe rendering, and robust polling/voice sending. Current staff reply trusts a client-provided session ID.
-6. Persist replies if a small change fits; otherwise explicitly retain the single-process, restart-loss limitation. Do not add Redis for this submission.
+- Reused the embedding, PostgreSQL, Neo4j, ingestion, and ticket code while repairing the request flow.
+- Local category hints replace the intent-parsing model call. Category misses retry unrestricted public retrieval. No-match requests create tickets without calling Groq.
+- Retrieval now uses a public-only PostgreSQL view, a provisional 0.60 distance ceiling, a relative relevance margin, and at most three direct matches. This threshold still needs final calibration.
+- Related graph policies are loaded through the same public view. Graph queries have limits/timeouts and failure falls back without dropping valid evidence. Routing uses the closest direct match.
+- Model generation requests structured JSON. Application validation requires a supported public policy ID and a verbatim supporting excerpt; malformed responses, refusals, unsupported citations, and provider failures create tickets. This validates provenance, not full semantic entailment.
+- Explicit human requests and restricted-record requests produce handoffs. Responses include status, ticket ID, reason, citation metadata, and whether ticket storage actually succeeded.
+- Pending-ticket retries for the same conversation/question reuse a ticket under a PostgreSQL transaction lock. Failed ticket writes return an honest unsaved-follow-up message.
+- Added bounded provider calls, safe exception logging, PostgreSQL timeouts, pooled-transaction rollback, shutdown cleanup, and request-length/whitespace validation.
+- Ingestion validates IDs, required fields, access levels, categories, tags, and embedding dimensions before writes. It applies the shared schema and commits the upsert batch atomically.
+- Added offline scripts/configure_runtime.py to grant public-view reads and ticket writes to a dedicated PostgreSQL role and save generated credentials only in local .env. No HTTP route can run this setup. Neo4j privilege enforcement remains incomplete; query READ mode is only a client hint.
+
+Per user instruction, Sprint 2 runtime/integration/model tests are deferred until the final testing pass. No Groq calls were made. Only source syntax and whitespace checks were performed. The updated schema and role setup must be applied before restarting this version:
+
+```sh
+docker compose exec -T postgres psql -U postgres -d postgres < database/schema.sql
+python scripts/configure_runtime.py
+```
+
+## Next actions
+
+1. Sprint 3: add typed chat, authenticated staff endpoints, authorized conversations, safe staff rendering, robust polling, and voice sending fixes.
+2. Sprint 3: persist replies in PostgreSQL if this stays within the time box; retain a single process for the demo.
+3. Final testing: verify structured Groq output/model support using the designated test key, citation validation, category fallback, threshold, graph outage, storage failure, retry deduplication, protected-data boundaries, and actual PostgreSQL role grants. External model testing is still deferred; prior automatic approval review required explicit permission to send sample context/questions to Groq.
+4. Sprint 4: verify actual cloud credentials/deployment route and package the submission.
 
 ## Startup and demo path
 
@@ -52,7 +70,7 @@ docker compose up -d
 python -m uvicorn app.main:app --host 127.0.0.1 --port 8001
 ```
 
-The local preview is running on port 8001 because port 8000 was already occupied. Health, student page, and staff page returned HTTP 200 from the actual running server.
+The Sprint 1 preview used port 8001 because port 8000 was occupied and returned HTTP 200. It does not verify Sprint 2; restart only after the updated schema and role setup are applied.
 
 Student: http://localhost:8001/ — staff: http://localhost:8001/staff — health: http://localhost:8001/health.
 
