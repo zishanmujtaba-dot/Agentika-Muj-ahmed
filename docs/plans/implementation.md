@@ -4,7 +4,7 @@ Deliver a working demo of the existing ECHO helpdesk within **180 minutes**, usi
 
 ## Starting point and success criteria
 
-The companion `ECHO - Project Description.md` preserves the supplied DOCX content. Its descriptions of completed features are claims to verify, not confirmation of what currently works. Application code has not yet been reviewed for this plan.
+The companion `../reference/project-description.md` preserves the supplied DOCX content. Its descriptions of completed features are claims to verify, not confirmation of what currently works. Application code has not yet been reviewed for this plan.
 
 A successful submission demonstrates:
 

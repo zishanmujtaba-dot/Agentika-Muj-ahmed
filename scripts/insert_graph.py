@@ -11,18 +11,20 @@ creates lightweight Policy nodes here too, just enough to attach relationships t
 policy text still lives in Postgres, not duplicated here.)
 """
 import os
+from pathlib import Path
 import json
 from neo4j import GraphDatabase
 from dotenv import load_dotenv
 
-load_dotenv()
+ROOT_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT_DIR / ".env")
 
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7689")
 NEO4J_AUTH = (os.environ.get("NEO4J_USER", "neo4j"), os.environ.get("NEO4J_PASSWORD", "password123"))
 
 
 def main():
-    with open("sample_org.json", "r", encoding="utf-8") as f:
+    with open(ROOT_DIR / "data" / "sample_org.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
     driver = GraphDatabase.driver(NEO4J_URI, auth=NEO4J_AUTH)

@@ -12,15 +12,17 @@ text just means editing sample_policies.json and running this again.
 Run: python insert_policies.py
 """
 import os
+from pathlib import Path
 import json
 import psycopg2
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
-load_dotenv()
+ROOT_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT_DIR / ".env")
 
 CONFIG = {
-    "input_file": "sample_policies.json",
+    "input_file": ROOT_DIR / "data" / "sample_policies.json",
     "pg_host": os.environ.get("PG_HOST", "localhost"),
     "pg_port": int(os.environ.get("PG_PORT", 5434)),
     "pg_dbname": os.environ.get("PG_DBNAME", "postgres"),

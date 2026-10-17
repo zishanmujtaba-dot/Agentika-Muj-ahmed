@@ -1,0 +1,1 @@
+"""ECHO helpdesk application."""

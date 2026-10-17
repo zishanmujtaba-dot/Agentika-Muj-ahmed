@@ -1,20 +1,12 @@
-"""
-ECHO retrieval + answer pipeline - rulebook version.
+"""Existing ECHO retrieval and answer pipeline, reused for the demo.
 
-Adapted and trimmed from the resume GraphRAG pipeline for the hackathon timeline:
-- pgvector only for now (no Neo4j - can be added later for relationships like "this policy
-  supersedes that one", but isn't needed for a first working demo)
-- READ-ONLY BY DESIGN: every database call in this file is a plain SELECT, built from fixed
-  parameterized SQL - never from LLM-generated SQL text. There is no code path here capable of
-  INSERT/UPDATE/DELETE. Only insert_policies.py (run separately, offline, with different
-  credentials) writes to the table.
-- Access control is intentionally simple right now: a policy is either 'public' or
-  'protected'. Protected policies are excluded at the SQL level - they are never even seen by
-  the LLM, not just hidden after the fact. The real rules for what counts as protected and who
-  (if anyone) can unlock it haven't been designed yet - that's the one thing to revisit.
-  retrieve_policies() is the single function to extend when that's ready.
+PostgreSQL/pgvector retrieves public policy text; Neo4j provides relationship
+metadata and department routing. Runtime writes are limited by the current code
+to escalation tickets, but database enforcement requires restricted credentials.
+Policy and graph ingestion remain separate offline scripts in scripts/.
 """
 import os
+from pathlib import Path
 import json
 import psycopg2
 from psycopg2 import pool as pg_pool
@@ -24,10 +16,11 @@ from neo4j import GraphDatabase
 from sentence_transformers import SentenceTransformer
 from dotenv import load_dotenv
 
-load_dotenv()
+ROOT_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(ROOT_DIR / ".env")
 
 client_groq = Groq(api_key=os.environ["GROQ_API_KEY"])
-GROQ_MODEL = "openai/gpt-oss-120b"
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
 NEO4J_URI = os.environ.get("NEO4J_URI", "bolt://localhost:7689")
 NEO4J_AUTH = (os.environ.get("NEO4J_USER", "neo4j"), os.environ.get("NEO4J_PASSWORD", "password123"))

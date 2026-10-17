@@ -34,8 +34,8 @@
 
 <script>
 // ---- CONFIG ----
-const BACKEND_URL = "http://localhost:8000/ask";
-const POLL_URL = "http://localhost:8000/poll";
+const BACKEND_URL = "/ask";
+const POLL_URL = "/poll";
 // One session ID per page load - this is what lets a staff member's reply find its way back
 // to this exact browser tab, via the poll queue on the backend.
 const SESSION_ID = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random());

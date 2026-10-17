@@ -1,21 +1,19 @@
-"""
-ECHO backend - the only HTTP surface the frontend (voice_chat.html, or a real chat UI later)
-talks to.
+"""ECHO HTTP API and same-origin student/staff pages.
 
-Exposes exactly one meaningful route: POST /ask. There is no route here that can write to the
-database - ingestion (insert_policies.py) is a separate, offline script you run yourself,
-never something this server can trigger. Keeping those two code paths physically separate
-(different files, different DB roles - see schema.sql) is what makes "the chatbot can read but
-never edit the rulebook" actually true, not just a comment.
-
-Run: uvicorn backend:app --reload --port 8000
+Run from repository root: uvicorn app.main:app --reload --port 8000
+Offline ingestion lives in scripts/. Runtime policy access is read-only by
+convention until restricted database roles are configured. Ticket creation and
+resolution write to the separate escalations table. Live replies are currently
+in memory; staff authentication is pending Sprint 3.
 """
 from collections import defaultdict
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-import rag_pipeline
+from . import rag_pipeline
 
 app = FastAPI(title="ECHO backend")
 
@@ -93,3 +91,16 @@ def poll(session_id: str, since: int = 0):
     reply the moment one arrives, without needing a live phone call or websocket."""
     messages = SESSION_MESSAGES[session_id]
     return {"messages": messages[since:], "total": len(messages)}
+
+
+WEB_DIR = Path(__file__).resolve().parents[1] / "web"
+
+
+@app.get("/", include_in_schema=False)
+def student_page():
+    return FileResponse(WEB_DIR / "index.html")
+
+
+@app.get("/staff", include_in_schema=False)
+def staff_page():
+    return FileResponse(WEB_DIR / "staff.html")

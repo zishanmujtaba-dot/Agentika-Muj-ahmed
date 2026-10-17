@@ -1,26 +1,25 @@
-version: "3.8"
-
 services:
   postgres:
     image: pgvector/pgvector:pg16
     container_name: echo-postgres
     restart: unless-stopped
     ports:
-      - "5434:5432"          # matches PG_PORT in .env.example
+      - "127.0.0.1:5434:5432"          # matches PG_PORT in .env.example
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     volumes:
       - echo_pg_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
 
   neo4j:
     image: neo4j:5
     container_name: echo-neo4j
     restart: unless-stopped
     ports:
-      - "7689:7687"          # bolt - matches NEO4J_URI in .env.example
-      - "7475:7474"          # http browser UI, at http://localhost:7475
+      - "127.0.0.1:7689:7687"          # bolt - matches NEO4J_URI in .env.example
+      - "127.0.0.1:7475:7474"          # http browser UI, at http://localhost:7475
     environment:
       NEO4J_AUTH: neo4j/password123   # matches NEO4J_USER/NEO4J_PASSWORD in .env.example
     volumes:
